@@ -248,8 +248,13 @@ export function updateCurrentSongInfo(song: Song, coverUrl: string): void {
         const artistText = Array.isArray(song.artist) ? song.artist.join(' / ') : song.artist;
         DOM.currentArtist.textContent = `${artistText} · ${song.album}`;
     }
-    if (DOM.currentCover) {
+    if (DOM.currentCover && coverUrl) {
+        // NOTE: 只有当封面 URL 有效时才更新，避免显示空白或 alt 文本
         DOM.currentCover.src = coverUrl;
+        DOM.currentCover.onerror = () => {
+            // 封面加载失败时使用默认占位图
+            DOM.currentCover!.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjIwIiBoZWlnaHQ9IjIyMCIgdmlld0JveD0iMCAwIDIyMCAyMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMjAiIGhlaWdodD0iMjIwIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU5LDAuMSkiIHJ4PSIyMCIvPgo8cGF0aCBkPSJNMTEwIDcwTDE0MCAxMTBIMTIwVjE1MEg5MFYxMTBINzBMMTEwIDcwWiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjMpIi8+Cjwvc3ZnPgo=';
+        };
     }
     if (DOM.downloadSongBtn) {
         DOM.downloadSongBtn.disabled = false;
