@@ -318,29 +318,33 @@ export async function getAlbumCoverUrl(song: Song, size: number = 300): Promise<
  * 3. 再尝试 Meting API
  * 4. 最后尝试 NEC 常规接口
  */
+/**
+ * 检查 URL 是否可能是试听版本
+ * NOTE: 试听版本通常包含特定的 URL 模式
+ */
+function isProbablyPreview(url: string): boolean {
+    // 常见的试听版本 URL 特征
+    const previewPatterns = [
+        /preview/i,
+        /trial/i,
+        /sample/i,
+        /\.30\./,  // 30秒试听
+        /\.60\./,  // 60秒试听
+    ];
+    return previewPatterns.some(pattern => pattern.test(url));
+}
+
 export async function getSongUrl(song: Song, quality: string): Promise<SongUrlResult> {
     const gdstudioUrl = getGDStudioApiUrl();
     const necUrl = currentAPI.type === 'nec' ? currentAPI.url : 'https://nec8.de5.net';
     const metingUrl = getMetingApiUrl();
     const source = song.source || 'netease';
 
-    // 1. 第一优先级：尝试 GDStudio API（支持多音乐源）
-    try {
-        console.log(`尝试使用 GDStudio API (${source}) 获取音频 URL...`);
-        const response = await fetchWithRetry(
-            `${gdstudioUrl}?types=url&source=${source}&id=${song.id}&br=${quality}`
-        );
-        const data: GDStudioUrlResponse = await response.json();
+    // NOTE: 存储所有获取到的 URL，最后选择最佳的
+    const candidates: SongUrlResult[] = [];
 
-        if (data?.url) {
-            console.log(`GDStudio API 获取成功 (${data.br}K):`, data.url.substring(0, 50) + '...');
-            return { url: data.url, br: String(data.br || quality) };
-        }
-    } catch (e) {
-        console.warn('GDStudio API 请求失败:', e);
-    }
-
-    // 2. 第二优先级：尝试 UnblockNeteaseMusic 解锁（仅网易云）
+    // 1. 第一优先级：尝试 UnblockNeteaseMusic 解锁（仅网易云）
+    // NOTE: 优先使用 Unblock 接口，它更可能返回完整版本
     if (source === 'netease') {
         try {
             console.log('优先尝试 NEC Unblock (match) 解锁灰色/VIP 歌曲...');
@@ -350,35 +354,43 @@ export async function getSongUrl(song: Song, quality: string): Promise<SongUrlRe
             const matchData: NeteaseSongUrlResponse = await matchResponse.json();
 
             if (matchData.code === 200 && matchData.data?.[0]?.url) {
-                const result: SongUrlResult = { 
-                    url: matchData.data[0].url, 
-                    br: String(matchData.data[0].br || quality) 
+                const result: SongUrlResult = {
+                    url: matchData.data[0].url,
+                    br: String(matchData.data[0].br || quality)
                 };
                 console.log('NEC Unblock 解锁成功:', result.url.substring(0, 80) + '...');
-                return result;
+                // 如果不是试听版本，直接返回
+                if (!isProbablyPreview(result.url)) {
+                    return result;
+                }
+                candidates.push(result);
             }
         } catch (e) {
             console.warn('NEC Unblock 请求失败:', e);
         }
     }
 
-    // 3. 第三优先级：尝试 Meting API
+    // 2. 第二优先级：尝试 GDStudio API（支持多音乐源）
     try {
-        console.log('尝试使用 Meting API 获取音频 URL...');
-        const response = await fetchWithRetry(`${metingUrl}/?type=song&id=${song.id}`);
-        const data: MetingSong | MetingSong[] = await response.json();
+        console.log(`尝试使用 GDStudio API (${source}) 获取音频 URL...`);
+        const response = await fetchWithRetry(
+            `${gdstudioUrl}?types=url&source=${source}&id=${song.id}&br=${quality}`
+        );
+        const data: GDStudioUrlResponse = await response.json();
 
-        const result = Array.isArray(data) ? data[0] : data;
-
-        if (result && result.url) {
-            console.log('Meting API 获取成功:', result.url.substring(0, 50) + '...');
-            return { url: result.url, br: quality };
+        if (data?.url) {
+            console.log(`GDStudio API 获取成功 (${data.br}K):`, data.url.substring(0, 50) + '...');
+            const result = { url: data.url, br: String(data.br || quality) };
+            if (!isProbablyPreview(result.url)) {
+                return result;
+            }
+            candidates.push(result);
         }
     } catch (e) {
-        console.warn('Meting API 请求失败:', e);
+        console.warn('GDStudio API 请求失败:', e);
     }
 
-    // 4. 第四优先级：NEC 常规接口 (兜底，仅网易云)
+    // 3. 第三优先级：NEC 常规接口 (仅网易云)
     if (source === 'netease') {
         const level = quality === '999' ? 'hires' : quality === '740' ? 'lossless' : quality === '320' ? 'exhigh' : 'standard';
         try {
@@ -389,16 +401,45 @@ export async function getSongUrl(song: Song, quality: string): Promise<SongUrlRe
             const data: NeteaseSongUrlResponse = await response.json();
 
             if (data.code === 200 && data.data?.[0]?.url) {
-                const result: SongUrlResult = { 
-                    url: data.data[0].url, 
-                    br: String(data.data[0].br || quality) 
+                const result: SongUrlResult = {
+                    url: data.data[0].url,
+                    br: String(data.data[0].br || quality)
                 };
                 console.log('NEC 常规接口获取成功:', result.url.substring(0, 80) + '...');
-                return result;
+                if (!isProbablyPreview(result.url)) {
+                    return result;
+                }
+                candidates.push(result);
             }
         } catch (error) {
             console.warn('NEC 常规接口失败:', error);
         }
+    }
+
+    // 4. 第四优先级：尝试 Meting API
+    try {
+        console.log('尝试使用 Meting API 获取音频 URL...');
+        const response = await fetchWithRetry(`${metingUrl}/?type=song&id=${song.id}`);
+        const data: MetingSong | MetingSong[] = await response.json();
+
+        const result = Array.isArray(data) ? data[0] : data;
+
+        if (result && result.url) {
+            console.log('Meting API 获取成功:', result.url.substring(0, 50) + '...');
+            const urlResult = { url: result.url, br: quality };
+            if (!isProbablyPreview(urlResult.url)) {
+                return urlResult;
+            }
+            candidates.push(urlResult);
+        }
+    } catch (e) {
+        console.warn('Meting API 请求失败:', e);
+    }
+
+    // 如果所有 URL 都可能是试听版本，返回第一个候选
+    if (candidates.length > 0) {
+        console.warn('所有获取到的 URL 可能是试听版本，使用第一个候选');
+        return candidates[0];
     }
 
     console.warn('所有方式均无法获取 URL');
