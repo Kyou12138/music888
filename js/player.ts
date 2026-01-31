@@ -249,8 +249,8 @@ export async function playSong(
 
             try {
                 await audioPlayer.play();
-                // NOTE: 淡入效果
-                fadeIn();
+                // NOTE: 淡入效果（await 防止状态不一致）
+                await fadeIn();
                 isPlaying = true;
                 ui.updatePlayButton(true);
             } catch (error: unknown) {
@@ -350,11 +350,14 @@ export function togglePlay(): void {
 }
 
 export function setVolume(value: string): void {
-    audioPlayer.volume = parseInt(value, 10) / 100;
+    const volume = parseInt(value, 10) / 100;
+    audioPlayer.volume = volume;
+    savedVolume = volume; // NOTE: 同步更新保存的音量
 }
 
 export function seekTo(event: MouseEvent): void {
-    if (!audioPlayer.duration) return;
+    // NOTE: 检查 duration 是否有效（NaN 或 0 都无效）
+    if (!audioPlayer.duration || !isFinite(audioPlayer.duration)) return;
     const progressBar = event.currentTarget as HTMLElement;
     const clickPosition = (event.clientX - progressBar.getBoundingClientRect().left) / progressBar.offsetWidth;
     audioPlayer.currentTime = clickPosition * audioPlayer.duration;
@@ -629,6 +632,8 @@ function savePlaylistsToStorage(): void {
         localStorage.setItem('musicPlayerPlaylists', JSON.stringify(data));
     } catch (error) {
         logger.error('保存歌单失败:', error);
+        // NOTE: 通知用户存储失败
+        ui.showNotification('存储空间不足，部分数据可能无法保存', 'warning');
     }
 }
 

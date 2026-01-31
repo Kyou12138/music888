@@ -56,8 +56,9 @@ export function showNotification(message: string, type: NotificationType = 'info
 
 // 存储当前的滚动加载状态
 let currentScrollState: ScrollState | null = null;
-// NOTE: 存储滚动监听器引用，用于清理
+// NOTE: 存储滚动监听器引用和容器，用于正确清理
 let currentScrollHandler: (() => void) | null = null;
+let currentScrollContainer: HTMLElement | null = null;
 
 /**
  * 渲染歌曲列表项
@@ -174,9 +175,9 @@ function renderSongItems(songs: Song[], startIndex: number, container: HTMLEleme
  * 监听滚动以加载更多
  */
 function setupInfiniteScroll(container: HTMLElement): void {
-    // NOTE: 清理旧的滚动监听器
-    if (currentScrollHandler) {
-        container.removeEventListener('scroll', currentScrollHandler);
+    // NOTE: 清理旧的滚动监听器（从正确的容器移除）
+    if (currentScrollHandler && currentScrollContainer) {
+        currentScrollContainer.removeEventListener('scroll', currentScrollHandler);
     }
 
     const scrollHandler = () => {
@@ -196,6 +197,7 @@ function setupInfiniteScroll(container: HTMLElement): void {
     };
 
     currentScrollHandler = scrollHandler;
+    currentScrollContainer = container;
     container.addEventListener('scroll', scrollHandler);
 }
 

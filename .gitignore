@@ -1,6 +1,5 @@
 # Dependencies
 node_modules/
-package-lock.json
 
 # Build output
 dist/
@@ -16,6 +15,7 @@ dist/
 *.swp
 *.swo
 *~
+.claude/
 
 # OS
 .DS_Store
@@ -31,3 +31,10 @@ yarn-error.log*
 # Temporary files
 *.tmp
 .cache/
+
+# Test artifacts
+test-coverage/
+coverage/
+test_screenshots/
+playwright-report/
+test-results/

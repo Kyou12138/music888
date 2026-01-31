@@ -11,6 +11,12 @@ import { MusicError } from './types';
 // --- 移动端页面切换功能（必须在模块顶层定义，供 HTML onclick 使用）---
 let currentMobilePage = 0;
 
+// NOTE: 触摸滑动状态
+let touchStartX = 0;
+let touchStartY = 0;
+let touchEndX = 0;
+let touchEndY = 0;
+
 /**
  * 切换移动端页面
  * @param pageIndex 页面索引 (0-2)
@@ -49,7 +55,8 @@ window.addEventListener('error', (event) => {
 
 window.addEventListener('unhandledrejection', (event) => {
     console.error('Unhandled promise rejection:', event.reason);
-    ui.showNotification('网络请求失败，请检查网络连接', 'error');
+    // NOTE: 使用通用错误消息，因为可能不是网络错误
+    ui.showNotification('操作失败，请稍后重试', 'error');
 });
 
 // --- Tab Switching Logic ---
@@ -501,18 +508,22 @@ async function handleRanking(rankType: string): Promise<void> {
 }
 
 // --- 应用启动 ---
-document.addEventListener('DOMContentLoaded', initializeApp);
-
-// NOTE: 移动端触摸滑动支持
-let touchStartX = 0;
-let touchStartY = 0;
-let touchEndX = 0;
-let touchEndY = 0;
-
-// 等待 DOM 加载后绑定触摸事件
 document.addEventListener('DOMContentLoaded', () => {
-    const mainContainer = document.querySelector('.main-container');
+    // 初始化主应用
+    initializeApp();
 
+    // NOTE: 快速歌单ID事件委托（替代 inline onclick）
+    document.querySelectorAll('.quick-id[data-playlist-id]').forEach(el => {
+        el.addEventListener('click', () => {
+            const playlistInput = getElement<HTMLInputElement>('#playlistIdInput');
+            if (playlistInput) {
+                playlistInput.value = (el as HTMLElement).dataset.playlistId || '';
+            }
+        });
+    });
+
+    // NOTE: 移动端触摸滑动支持
+    const mainContainer = document.querySelector('.main-container');
     if (mainContainer) {
         mainContainer.addEventListener('touchstart', (e) => {
             touchStartX = (e as TouchEvent).changedTouches[0].screenX;
@@ -526,7 +537,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { passive: true });
     }
 
-    // NOTE: 页面指示器点击事件委托（替代行内 onclick）
+    // NOTE: 页面指示器点击事件委托
     const indicatorContainer = document.querySelector('.mobile-page-indicators');
     if (indicatorContainer) {
         indicatorContainer.addEventListener('click', (e) => {
@@ -538,7 +549,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // NOTE: 初始化移动端页面指示器，确保第一页激活
+    // NOTE: 初始化移动端页面指示器
     if (window.innerWidth <= 768) {
         switchMobilePage(0);
     }

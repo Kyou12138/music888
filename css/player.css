@@ -34,18 +34,8 @@
     margin-bottom: 20px;
 }
 
-.current-cover {
-    width: 160px;
-    height: 160px;
-    border-radius: 50%;
-    object-fit: cover;
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
-    transition: all 0.3s ease;
-    border: 6px solid rgba(255, 255, 255, 0.1);
-    position: relative;
-}
-
-.current-cover::before {
+/* NOTE: 伪元素应用到容器而非 img 元素（img 不支持伪元素） */
+.current-cover-container::before {
     content: '';
     position: absolute;
     top: 50%;
@@ -56,9 +46,11 @@
     background: rgba(0, 0, 0, 0.3);
     border-radius: 50%;
     backdrop-filter: blur(10px);
+    z-index: 1;
+    pointer-events: none;
 }
 
-.current-cover::after {
+.current-cover-container::after {
     content: '';
     position: absolute;
     top: 50%;
@@ -68,6 +60,18 @@
     height: 12px;
     background: rgba(255, 255, 255, 0.8);
     border-radius: 50%;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.current-cover {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease;
+    border: 6px solid rgba(255, 255, 255, 0.1);
 }
 
 .current-cover.playing {
