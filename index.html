@@ -63,6 +63,16 @@
 </head>
 
 <body>
+    <!-- 无障碍：跳过导航链接 -->
+    <nav class="skip-links" aria-label="跳过导航">
+        <a href="#searchInput" class="skip-link">跳到搜索</a>
+        <a href="#playBtn" class="skip-link">跳到播放器</a>
+        <a href="#lyricsContainer" class="skip-link">跳到歌词</a>
+    </nav>
+
+    <!-- 无障碍：ARIA Live Region 用于屏幕阅读器实时播报 -->
+    <div id="aria-live-region" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
     <div class="bg-animation"></div>
     <div class="bg-overlay"></div>
     <nav class="navbar">

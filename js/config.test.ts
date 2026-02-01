@@ -7,28 +7,28 @@ describe('Logger', () => {
     it('应正确输出调试日志', () => {
         const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
         logger.debug('test message');
-        expect(consoleLogSpy).toHaveBeenCalledWith('test message');
+        expect(consoleLogSpy).toHaveBeenCalledWith('[DEBUG]', 'test message');
         consoleLogSpy.mockRestore();
     });
 
     it('应正确输出信息日志', () => {
         const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
         logger.info('test message');
-        expect(consoleLogSpy).toHaveBeenCalledWith('test message');
+        expect(consoleLogSpy).toHaveBeenCalledWith('[INFO]', 'test message');
         consoleLogSpy.mockRestore();
     });
 
     it('应正确输出警告日志', () => {
         const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
         logger.warn('test message');
-        expect(consoleWarnSpy).toHaveBeenCalledWith('test message');
+        expect(consoleWarnSpy).toHaveBeenCalledWith('[WARN]', 'test message');
         consoleWarnSpy.mockRestore();
     });
 
     it('应正确输出错误日志', () => {
         const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
         logger.error('test message');
-        expect(consoleErrorSpy).toHaveBeenCalledWith('test message');
+        expect(consoleErrorSpy).toHaveBeenCalledWith('[ERROR]', 'test message');
         consoleErrorSpy.mockRestore();
     });
 });

@@ -13,8 +13,58 @@
  */
 export const IS_PRODUCTION = import.meta.env.PROD;
 
+// ============================================
+// 错误缓冲区（用于未来远程上报）
+// ============================================
+
+interface ErrorEntry {
+    timestamp: string;
+    level: 'WARN' | 'ERROR';
+    message: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    details?: any;
+}
+
+const ERROR_BUFFER_SIZE = 50;
+const errorBuffer: ErrorEntry[] = [];
+
+/**
+ * 添加错误到缓冲区
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function addToErrorBuffer(level: 'WARN' | 'ERROR', message: string, details?: any): void {
+    const entry: ErrorEntry = {
+        timestamp: new Date().toISOString(),
+        level,
+        message: String(message),
+        details
+    };
+
+    errorBuffer.push(entry);
+
+    // 保持缓冲区大小
+    if (errorBuffer.length > ERROR_BUFFER_SIZE) {
+        errorBuffer.shift();
+    }
+}
+
+/**
+ * 获取错误缓冲区（用于调试或未来上报）
+ */
+export function getErrorBuffer(): ErrorEntry[] {
+    return [...errorBuffer];
+}
+
+/**
+ * 清空错误缓冲区
+ */
+export function clearErrorBuffer(): void {
+    errorBuffer.length = 0;
+}
+
 /**
  * 日志工具 - 生产环境禁用详细日志
+ * NOTE: 添加日志级别前缀 [DEBUG]/[INFO]/[WARN]/[ERROR]
  */
 export const logger = {
     /**
@@ -23,7 +73,7 @@ export const logger = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     debug: (...args: any[]): void => {
         if (!IS_PRODUCTION) {
-            console.log(...args);
+            console.log('[DEBUG]', ...args);
         }
     },
 
@@ -33,24 +83,26 @@ export const logger = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     info: (...args: any[]): void => {
         if (!IS_PRODUCTION) {
-            console.log(...args);
+            console.log('[INFO]', ...args);
         }
     },
 
     /**
-     * 警告日志 - 始终输出
+     * 警告日志 - 始终输出 + 加入错误缓冲区
      */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     warn: (...args: any[]): void => {
-        console.warn(...args);
+        console.warn('[WARN]', ...args);
+        addToErrorBuffer('WARN', args[0], args.slice(1));
     },
 
     /**
-     * 错误日志 - 始终输出
+     * 错误日志 - 始终输出 + 加入错误缓冲区
      */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     error: (...args: any[]): void => {
-        console.error(...args);
+        console.error('[ERROR]', ...args);
+        addToErrorBuffer('ERROR', args[0], args.slice(1));
     }
 };
 

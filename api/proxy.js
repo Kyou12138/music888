@@ -3,6 +3,121 @@ const fetch = require('node-fetch');
 // NOTE: 上游请求超时时间 (毫秒)
 const UPSTREAM_TIMEOUT = 30000;
 
+// NOTE: URL 参数最大长度限制
+const MAX_URL_LENGTH = 2048;
+
+// ============================================
+// 速率限制配置
+// ============================================
+
+// NOTE: 速率限制 - 60次/分钟/IP
+const RATE_LIMIT = {
+    windowMs: 60 * 1000, // 1 分钟
+    maxRequests: 60,
+};
+
+// NOTE: 简单内存存储（Vercel Serverless 函数间不共享，但单实例内有效）
+const rateLimitStore = new Map();
+
+/**
+ * 清理过期的速率限制记录
+ */
+function cleanupExpiredEntries() {
+    const now = Date.now();
+    for (const [key, data] of rateLimitStore.entries()) {
+        if (now - data.windowStart > RATE_LIMIT.windowMs) {
+            rateLimitStore.delete(key);
+        }
+    }
+}
+
+/**
+ * 检查速率限制
+ * @param {string} ip 客户端 IP
+ * @returns {{ allowed: boolean, remaining: number, resetTime: number }}
+ */
+function checkRateLimit(ip) {
+    const now = Date.now();
+
+    // 定期清理（每 100 次请求）
+    if (rateLimitStore.size > 100) {
+        cleanupExpiredEntries();
+    }
+
+    let data = rateLimitStore.get(ip);
+
+    if (!data || now - data.windowStart > RATE_LIMIT.windowMs) {
+        // 新窗口
+        data = { windowStart: now, count: 1 };
+        rateLimitStore.set(ip, data);
+        return {
+            allowed: true,
+            remaining: RATE_LIMIT.maxRequests - 1,
+            resetTime: now + RATE_LIMIT.windowMs
+        };
+    }
+
+    data.count++;
+    rateLimitStore.set(ip, data);
+
+    return {
+        allowed: data.count <= RATE_LIMIT.maxRequests,
+        remaining: Math.max(0, RATE_LIMIT.maxRequests - data.count),
+        resetTime: data.windowStart + RATE_LIMIT.windowMs
+    };
+}
+
+// ============================================
+// CORS 来源白名单
+// ============================================
+
+// NOTE: 允许的来源域名（生产环境应配置实际域名）
+const ALLOWED_ORIGINS = [
+    // 本地开发
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:5173',
+    // Vercel 预览和生产
+    /\.vercel\.app$/,
+    // 自定义域名（请根据实际情况修改）
+    // 'https://your-domain.com',
+];
+
+/**
+ * 检查来源是否允许
+ * @param {string} origin 请求来源
+ * @returns {boolean}
+ */
+function isOriginAllowed(origin) {
+    if (!origin) return false;
+
+    for (const allowed of ALLOWED_ORIGINS) {
+        if (typeof allowed === 'string' && origin === allowed) {
+            return true;
+        }
+        if (allowed instanceof RegExp && allowed.test(origin)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * 获取允许的 CORS 来源
+ * @param {string} requestOrigin 请求来源
+ * @returns {string} 允许的来源或空字符串
+ */
+function getAllowedOrigin(requestOrigin) {
+    if (isOriginAllowed(requestOrigin)) {
+        return requestOrigin;
+    }
+    // 开发环境或未指定来源时，允许所有（便于调试）
+    if (process.env.NODE_ENV !== 'production' || !requestOrigin) {
+        return '*';
+    }
+    return '';
+}
+
 // NOTE: 白名单域名列表，只允许代理到这些可信域名
 const ALLOWED_HOSTS = [
     // 音乐 API 源
@@ -68,18 +183,50 @@ function isUrlAllowed(url) {
 }
 
 module.exports = async (req, res) => {
+    // NOTE: 获取客户端 IP（Vercel 提供）
+    const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+                     req.headers['x-real-ip'] ||
+                     req.socket?.remoteAddress ||
+                     'unknown';
+
+    // NOTE: 获取请求来源
+    const requestOrigin = req.headers.origin || '';
+    const allowedOrigin = getAllowedOrigin(requestOrigin);
+
     // NOTE: 处理 CORS 预检请求
     if (req.method === 'OPTIONS') {
-        res.setHeader('Access-Control-Allow-Origin', '*');
+        if (allowedOrigin) {
+            res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+        }
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
         res.setHeader('Access-Control-Max-Age', '86400');
         return res.status(204).end();
     }
 
+    // NOTE: 速率限制检查
+    const rateLimit = checkRateLimit(clientIp);
+    res.setHeader('X-RateLimit-Limit', RATE_LIMIT.maxRequests);
+    res.setHeader('X-RateLimit-Remaining', rateLimit.remaining);
+    res.setHeader('X-RateLimit-Reset', Math.ceil(rateLimit.resetTime / 1000));
+
+    if (!rateLimit.allowed) {
+        console.warn(`Rate limit exceeded for IP: ${clientIp}`);
+        return res.status(429).json({
+            error: 'Too Many Requests',
+            retryAfter: Math.ceil((rateLimit.resetTime - Date.now()) / 1000)
+        });
+    }
+
     const url = req.query.url;
     if (!url) {
         return res.status(400).json({ error: 'URL parameter is required' });
+    }
+
+    // NOTE: URL 长度验证
+    if (url.length > MAX_URL_LENGTH) {
+        console.warn(`URL too long: ${url.length} chars from IP: ${clientIp}`);
+        return res.status(414).json({ error: 'URL too long' });
     }
 
     // NOTE: 安全检查 - 验证 URL 是否在白名单中
@@ -144,10 +291,16 @@ module.exports = async (req, res) => {
         const contentType = response.headers.get('content-type') || 'application/octet-stream';
         const contentLength = response.headers.get('content-length');
 
-        // NOTE: 设置 CORS 头，允许跨域访问
-        res.setHeader('Access-Control-Allow-Origin', '*');
+        // NOTE: 设置 CORS 头，使用安全的来源限制
+        if (allowedOrigin) {
+            res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+        }
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+        // NOTE: 如果不是 * 来源，需要设置 Vary 头
+        if (allowedOrigin && allowedOrigin !== '*') {
+            res.setHeader('Vary', 'Origin');
+        }
 
         // NOTE: 根据响应类型设置不同的响应头
         res.setHeader('Content-Type', contentType);

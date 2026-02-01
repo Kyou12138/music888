@@ -655,3 +655,49 @@
     border-color: rgba(244, 67, 54, 0.3);
     color: #f44336;
 }
+
+/* === Accessibility Components === */
+
+/* 跳过导航链接 - 只在键盘聚焦时可见 */
+.skip-links {
+    position: absolute;
+    top: -100%;
+    left: 0;
+    z-index: 9999;
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    background: var(--color-bg);
+}
+
+.skip-link {
+    padding: 10px 20px;
+    background: var(--color-primary);
+    color: var(--color-text);
+    text-decoration: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.skip-link:focus {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
+.skip-links:focus-within {
+    top: 0;
+}
+
+/* ARIA Live Region - 屏幕阅读器专用，视觉隐藏 */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}

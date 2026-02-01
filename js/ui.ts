@@ -2,11 +2,16 @@ import { getSongUrl } from './api';
 import { Song, LyricLine, DOMCache, ScrollState, NotificationType } from './types';
 import * as player from './player';
 import { escapeHtml, formatTime, getElement } from './utils';
-import { APP_CONFIG } from './config';
+import { APP_CONFIG, logger } from './config';
 
 // --- DOM Element Cache ---
 
 let DOM: DOMCache;
+
+// --- 通知去重 ---
+const NOTIFICATION_DEDUP_TIME = 3000; // 3 秒内相同消息不重复
+let lastNotificationMessage = '';
+let lastNotificationTime = 0;
 
 /**
  * 初始化 UI 模块，缓存 DOM 元素引用
@@ -36,6 +41,18 @@ export function init(): void {
  * @param type 通知类型：info/success/warning/error
  */
 export function showNotification(message: string, type: NotificationType = 'info'): void {
+    // NOTE: 通知去重 - 3 秒内相同消息不重复显示
+    const now = Date.now();
+    if (message === lastNotificationMessage && now - lastNotificationTime < NOTIFICATION_DEDUP_TIME) {
+        logger.debug('通知去重，跳过重复消息:', message);
+        return;
+    }
+    lastNotificationMessage = message;
+    lastNotificationTime = now;
+
+    // NOTE: 同步播报到 ARIA Live Region
+    announceToScreenReader(message);
+
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     // NOTE: 使用 textContent 而非 innerHTML，防止 XSS
@@ -52,6 +69,21 @@ export function showNotification(message: string, type: NotificationType = 'info
         notification.classList.add('notification-hide');
         setTimeout(() => notification.remove(), 500);
     }, 3000);
+}
+
+/**
+ * 向屏幕阅读器播报消息
+ * @param message 要播报的消息
+ */
+export function announceToScreenReader(message: string): void {
+    const liveRegion = document.getElementById('aria-live-region');
+    if (liveRegion) {
+        // NOTE: 清空再设置，确保相同消息也能触发播报
+        liveRegion.textContent = '';
+        requestAnimationFrame(() => {
+            liveRegion.textContent = message;
+        });
+    }
 }
 
 // 存储当前的滚动加载状态
@@ -152,7 +184,7 @@ function renderSongItems(songs: Song[], startIndex: number, container: HTMLEleme
                         showNotification('无法获取下载链接', 'error');
                     }
                 } catch (error) {
-                    console.error('下载失败:', error);
+                    logger.error('下载失败:', error);
                     showNotification('下载出错，请重试', 'error');
                 } finally {
                     btn.disabled = false;

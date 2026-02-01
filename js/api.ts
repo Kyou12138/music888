@@ -28,7 +28,8 @@ import {
     MusicErrorType,
 } from './types';
 
-import { logger, APP_CONFIG, PREVIEW_DETECTION } from './config';
+import { logger, PREVIEW_DETECTION } from './config';
+import { gdstudioCircuit, CircuitState } from './circuit-breaker';
 
 // 重新导出 Song 类型供其他模块使用
 export type { Song } from './types';
@@ -76,37 +77,32 @@ const API_SOURCES: ApiSource[] = [
 
 let currentAPI = API_SOURCES[0];
 
-// NOTE: GDStudio API 可用性缓存，避免重复请求不可用的 API
-let gdstudioApiAvailable: boolean | null = null;
-let gdstudioApiLastCheck: number = 0;
+// NOTE: 使用断路器替代手动 API 可用性检测
+// gdstudioCircuit 已在 circuit-breaker.ts 中定义
 
 /**
- * 检查 GDStudio API 是否可用（带缓存）
+ * 检查 GDStudio API 是否可用（通过断路器）
  */
 function isGDStudioApiAvailable(): boolean {
-    const now = Date.now();
-    // 如果缓存过期或未检测，返回 true 让它尝试
-    if (gdstudioApiAvailable === null || now - gdstudioApiLastCheck > APP_CONFIG.GDSTUDIO_CACHE_TTL) {
-        return true;
-    }
-    return gdstudioApiAvailable;
+    return gdstudioCircuit.canExecute();
 }
 
 /**
- * 标记 GDStudio API 为不可用
+ * 标记 GDStudio API 为不可用（通过断路器记录失败）
  */
 function markGDStudioApiUnavailable(): void {
-    gdstudioApiAvailable = false;
-    gdstudioApiLastCheck = Date.now();
-    logger.warn('GDStudio API 标记为不可用，将在 5 分钟后重试');
+    gdstudioCircuit.recordFailure();
+    const state = gdstudioCircuit.getState();
+    if (state === CircuitState.OPEN) {
+        logger.warn('GDStudio API 断路器已断开，将在恢复超时后重试');
+    }
 }
 
 /**
- * 标记 GDStudio API 为可用
+ * 标记 GDStudio API 为可用（通过断路器记录成功）
  */
 function markGDStudioApiAvailable(): void {
-    gdstudioApiAvailable = true;
-    gdstudioApiLastCheck = Date.now();
+    gdstudioCircuit.recordSuccess();
 }
 
 // NOTE: 代理端点路径，用于解决 CORS 问题

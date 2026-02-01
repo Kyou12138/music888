@@ -7,6 +7,8 @@ import * as ui from './ui';
 import * as player from './player';
 import { getElement } from './utils';
 import { MusicError } from './types';
+import { logger } from './config';
+import { initPerformanceMonitoring } from './perf';
 
 // --- 移动端页面切换功能（必须在模块顶层定义，供 HTML onclick 使用）---
 let currentMobilePage = 0;
@@ -49,12 +51,12 @@ window.switchMobilePage = switchMobilePage;
 
 // --- 全局错误处理 ---
 window.addEventListener('error', (event) => {
-    console.error('Global error:', event.error);
+    logger.error('Global error:', event.error);
     ui.showNotification('发生错误，请刷新页面重试', 'error');
 });
 
 window.addEventListener('unhandledrejection', (event) => {
-    console.error('Unhandled promise rejection:', event.reason);
+    logger.error('Unhandled promise rejection:', event.reason);
     // NOTE: 使用通用错误消息，因为可能不是网络错误
     ui.showNotification('操作失败，请稍后重试', 'error');
 });
@@ -89,7 +91,11 @@ function switchTab(tabName: string): void {
  * 初始化应用程序
  */
 function initializeApp(): void {
-    console.log('云音乐 App 初始化...');
+    logger.info('云音乐 App 初始化...');
+
+    // NOTE: 初始化性能监控（采集 Web Vitals）
+    initPerformanceMonitoring();
+
     ui.init();
     player.initPlayer(); // NOTE: 初始化播放器，绑定 DOM 音频元素
 
@@ -106,7 +112,7 @@ function initializeApp(): void {
             ui.showNotification('所有 API 均不可用，请稍后重试', 'error');
         }
     }).catch(error => {
-        console.error('API detection failed:', error);
+        logger.error('API detection failed:', error);
         ui.showNotification('API 检测失败', 'error');
     });
 
@@ -342,6 +348,12 @@ async function handleSearch(): Promise<void> {
         return;
     }
 
+    // NOTE: 输入长度限制，防止恶意超长输入
+    if (keyword.length > 100) {
+        ui.showNotification('搜索关键词过长（最多100字符）', 'warning');
+        return;
+    }
+
     ui.showLoading('searchResults');
 
     try {
@@ -371,7 +383,7 @@ async function handleSearch(): Promise<void> {
             ui.showNotification(`从 ${sourceName} 找到 ${songs.length} 首歌曲`, 'success');
         }
     } catch (error) {
-        console.error('Search failed:', error);
+        logger.error('Search failed:', error);
         ui.showError('搜索失败，请稍后重试', 'searchResults');
         ui.showNotification('搜索失败，请检查网络连接', 'error');
     }
@@ -387,7 +399,7 @@ async function handleExplore(): Promise<void> {
         const songs = await api.exploreRadarAPI();
         ui.displaySearchResults(songs, 'searchResults', songs);
     } catch (error) {
-        console.error('Explore failed:', error);
+        logger.error('Explore failed:', error);
         ui.showError('探索失败，请稍后重试', 'searchResults');
     }
 }
@@ -418,13 +430,13 @@ async function handleParsePlaylist(): Promise<void> {
             ui.showNotification(`成功解析歌单《${playlist.name}》，共 ${playlist.count || 0} 首歌曲`, 'success');
         }
     } catch (error) {
-        console.error('Parse playlist failed:', error);
+        logger.error('Parse playlist failed:', error);
 
         // 使用 MusicError 提供更友好的错误信息
         let errorMessage = '解析歌单失败';
         if (error instanceof MusicError) {
             errorMessage = error.userMessage;
-            console.error(`[${error.type}] ${error.message}`);
+            logger.error(`[${error.type}] ${error.message}`);
         } else if (error instanceof Error) {
             errorMessage = error.message;
         }
@@ -502,7 +514,7 @@ async function handleRanking(rankType: string): Promise<void> {
         const songs = await api.searchMusicAPI(keyword, 'netease');
         ui.displaySearchResults(songs, 'rankingResults', songs);
     } catch (error) {
-        console.error('Ranking load failed:', error);
+        logger.error('Ranking load failed:', error);
         ui.showError('加载排行榜失败', 'rankingResults');
     }
 }
@@ -593,10 +605,10 @@ function registerServiceWorker(): void {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('/sw.js')
                 .then(registration => {
-                    console.log('SW registered:', registration);
+                    logger.debug('SW registered:', registration);
                 })
                 .catch(error => {
-                    console.log('SW registration failed:', error);
+                    logger.debug('SW registration failed:', error);
                 });
         });
     }

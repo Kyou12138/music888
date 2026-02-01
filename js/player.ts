@@ -212,7 +212,7 @@ export async function playSong(
 
     if (song.source === 'kuwo') {
         // NOTE: 酷我音乐源在 GDStudio API 中是稳定的，不再跳过
-        console.log('使用酷我音乐源播放:', song.name);
+        logger.debug('使用酷我音乐源播放:', song.name);
     }
 
     if (!fromHistory) {
@@ -236,6 +236,10 @@ export async function playSong(
     ui.updateCurrentSongInfo(song, ''); // 暂时不显示封面
     updatePlayerFavoriteButton();
 
+    // NOTE: 无障碍 - 向屏幕阅读器播报歌曲切换
+    const artistText = Array.isArray(song.artist) ? song.artist.join(' / ') : song.artist;
+    ui.announceToScreenReader(`正在播放: ${song.name}, 歌手: ${artistText}`);
+
     // 异步获取封面并更新 Media Session
     api.getAlbumCoverUrl(song)
         .then(coverUrl => {
@@ -245,7 +249,7 @@ export async function playSong(
                 updateMediaSession(song, coverUrl);
             }
         })
-        .catch(err => console.error('Cover load failed', err));
+        .catch(err => logger.error('Cover load failed', err));
 
     try {
         ui.showNotification('正在加载音乐...', 'info');
@@ -278,7 +282,7 @@ export async function playSong(
                     // 否则继续尝试更高音质
                 }
             } catch (err) {
-                console.warn(`获取品质 ${quality} 失败:`, err);
+                logger.warn(`获取品质 ${quality} 失败:`, err);
                 continue;
             }
         }
@@ -344,10 +348,10 @@ export async function playSong(
                     errorName === 'NotAllowedError';
 
                 if (isCopyrightIssue) {
-                    console.warn('版权限制或自动播放阻止:', error);
+                    logger.warn('版权限制或自动播放阻止:', error);
                     ui.showNotification('部分歌曲因版权限制无法播放，尝试播放下一首', 'warning');
                 } else {
-                    console.error('播放失败:', error);
+                    logger.error('播放失败:', error);
                     ui.showNotification('播放失败，请手动播放或尝试其他歌曲', 'warning');
                 }
                 isPlaying = false;
@@ -355,7 +359,7 @@ export async function playSong(
             }
         } else {
             ui.showNotification(`无法获取音乐链接 (${song.name})，可能因版权限制`, 'info');
-            console.warn('所有品质尝试均失败，可能是版权限制:', song.name);
+            logger.warn('所有品质尝试均失败，可能是版权限制:', song.name);
             // NOTE: 连续版权问题时不立即切歌，给用户选择
             setTimeout(() => {
                 if (requestId === currentPlayRequestId) nextSong();
@@ -368,9 +372,9 @@ export async function playSong(
         let userMessage = '播放失败，将尝试下一首';
         if (error instanceof MusicError) {
             userMessage = error.userMessage;
-            console.error(`[${error.type}] ${error.message}`);
+            logger.error(`[${error.type}] ${error.message}`);
         } else {
-            console.error('Error playing song:', error);
+            logger.error('Error playing song:', error);
         }
 
         ui.showNotification(userMessage, 'error');
@@ -498,7 +502,7 @@ export function downloadSongByData(song: Song | null): void {
                         ui.showNotification(`下载完成: ${song.name}`, 'success');
                     })
                     .catch(err => {
-                        console.error('下载失败:', err);
+                        logger.error('下载失败:', err);
                         ui.showNotification(`下载失败: ${err.message}`, 'error');
                     });
             } else {
@@ -506,7 +510,7 @@ export function downloadSongByData(song: Song | null): void {
             }
         })
         .catch(err => {
-            console.error('获取下载链接失败:', err);
+            logger.error('获取下载链接失败:', err);
             ui.showNotification('获取下载链接失败', 'error');
         });
 }
@@ -531,7 +535,7 @@ export function downloadLyricByData(song: Song | null): void {
             }
         })
         .catch(err => {
-            console.error('获取歌词失败:', err);
+            logger.error('获取歌词失败:', err);
             ui.showNotification('获取歌词失败', 'error');
         });
 }
@@ -744,7 +748,7 @@ audioPlayer.addEventListener('error', _e => {
                 break;
         }
     }
-    console.error('Audio Error:', errorMsg, 'URL:', audioPlayer.src);
+    logger.error('Audio Error:', errorMsg, 'URL:', audioPlayer.src);
     ui.showNotification(`播放错误: ${errorMsg}`, 'error');
 });
 
@@ -765,7 +769,7 @@ audioPlayer.addEventListener('ended', () => {
         // NOTE: 单曲循环直接重置播放位置，无需重新加载资源
         audioPlayer.currentTime = 0;
         audioPlayer.play().catch(err => {
-            console.warn('单曲循环播放失败:', err);
+            logger.warn('单曲循环播放失败:', err);
         });
     } else {
         nextSong();
