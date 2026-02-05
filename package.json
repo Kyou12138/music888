@@ -23,7 +23,7 @@
   ],
   "author": "truelife0958",
   "license": "MIT",
-  "type": "commonjs",
+  "type": "module",
   "engines": {
     "node": ">=18.0.0"
   },
