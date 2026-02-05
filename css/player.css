@@ -262,7 +262,7 @@
 .download-btn:hover:not(:disabled) {
     background: rgba(76, 175, 80, 0.2);
     border-color: rgba(76, 175, 80, 0.4);
-    color: #4CAF50;
+    color: #4caf50;
     transform: translateY(-2px);
 }
 

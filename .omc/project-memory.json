@@ -1,0 +1,162 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1770179294655,
+  "projectRoot": "d:\\ebak\\project\\music888-main",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": ">=18.0.0",
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "vite",
+        "version": "7.1.10",
+        "category": "build"
+      },
+      {
+        "name": "vitest",
+        "version": "4.0.18",
+        "category": "testing"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": "Node.js 18.0.0"
+  },
+  "build": {
+    "buildCommand": "npm run build",
+    "testCommand": "npm test",
+    "lintCommand": "npm run lint",
+    "devCommand": "npm run dev",
+    "scripts": {
+      "dev": "vite",
+      "build": "vite build",
+      "preview": "vite preview",
+      "test": "vitest",
+      "test:run": "vitest run",
+      "test:ui": "vitest --ui",
+      "test:coverage": "vitest run --coverage",
+      "lint": "eslint js --ext .ts",
+      "lint:fix": "eslint js --ext .ts --fix",
+      "format": "prettier --write \"js/**/*.ts\" \"css/**/*.css\""
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "public"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "api": {
+      "path": "api",
+      "purpose": "API routes",
+      "fileCount": 1,
+      "lastAccessed": 1770179294356,
+      "keyFiles": [
+        "proxy.js"
+      ]
+    },
+    "css": {
+      "path": "css",
+      "purpose": null,
+      "fileCount": 9,
+      "lastAccessed": 1770179294374,
+      "keyFiles": [
+        "animations.css",
+        "base.css",
+        "components.css",
+        "layout.css",
+        "lyrics.css"
+      ]
+    },
+    "dist": {
+      "path": "dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 3,
+      "lastAccessed": 1770179294378,
+      "keyFiles": [
+        "index.html",
+        "manifest.json",
+        "sw.js"
+      ]
+    },
+    "js": {
+      "path": "js",
+      "purpose": null,
+      "fileCount": 15,
+      "lastAccessed": 1770179294478,
+      "keyFiles": [
+        "api.test.ts",
+        "api.ts",
+        "circuit-breaker.ts",
+        "config.test.ts",
+        "config.ts"
+      ]
+    },
+    "playwright-report": {
+      "path": "playwright-report",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1770179294479,
+      "keyFiles": [
+        "index.html"
+      ]
+    },
+    "public": {
+      "path": "public",
+      "purpose": "Public files",
+      "fileCount": 2,
+      "lastAccessed": 1770179294481,
+      "keyFiles": [
+        "manifest.json",
+        "sw.js"
+      ]
+    },
+    "test-results": {
+      "path": "test-results",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1770179294507,
+      "keyFiles": []
+    },
+    "dist\\assets": {
+      "path": "dist\\assets",
+      "purpose": "Static assets",
+      "fileCount": 3,
+      "lastAccessed": 1770179294526,
+      "keyFiles": [
+        "core-CFrvy7rm.js",
+        "index-B92GX3Gr.css",
+        "index-LRlMmujY.js"
+      ]
+    }
+  },
+  "hotPaths": [],
+  "userDirectives": []
+}

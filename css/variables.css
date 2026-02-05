@@ -25,10 +25,10 @@
     --color-text-muted: rgba(255, 255, 255, 0.6);
 
     /* 状态颜色 */
-    --color-success: #4CAF50;
+    --color-success: #4caf50;
     --color-warning: #ff9800;
     --color-error: #f44336;
-    --color-info: #2196F3;
+    --color-info: #2196f3;
 
     /* 阴影 */
     --shadow-primary: 0 4px 15px rgba(255, 107, 107, 0.3);

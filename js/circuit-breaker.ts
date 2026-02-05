@@ -8,9 +8,9 @@ import { logger } from './config';
 
 // 断路器状态
 export enum CircuitState {
-    CLOSED = 'CLOSED',      // 正常状态，允许请求通过
-    OPEN = 'OPEN',          // 断开状态，拒绝所有请求
-    HALF_OPEN = 'HALF_OPEN' // 半开状态，允许少量请求测试
+    CLOSED = 'CLOSED', // 正常状态，允许请求通过
+    OPEN = 'OPEN', // 断开状态，拒绝所有请求
+    HALF_OPEN = 'HALF_OPEN', // 半开状态，允许少量请求测试
 }
 
 // 断路器配置
@@ -27,7 +27,7 @@ export interface CircuitBreakerConfig {
 const DEFAULT_CONFIG: CircuitBreakerConfig = {
     failureThreshold: 5,
     resetTimeout: 30000, // 30 秒
-    halfOpenRequests: 2
+    halfOpenRequests: 2,
 };
 
 /**
@@ -188,7 +188,7 @@ export class CircuitBreaker {
             name: this.name,
             state: this.getState(),
             failureCount: this.failureCount,
-            lastFailureTime: this.lastFailureTime
+            lastFailureTime: this.lastFailureTime,
         };
     }
 }
@@ -201,19 +201,5 @@ export class CircuitBreaker {
 export const gdstudioCircuit = new CircuitBreaker('GDStudio', {
     failureThreshold: 3,
     resetTimeout: 5 * 60 * 1000, // 5 分钟
-    halfOpenRequests: 1
-});
-
-/** NEC API 断路器 */
-export const necCircuit = new CircuitBreaker('NEC', {
-    failureThreshold: 5,
-    resetTimeout: 60 * 1000, // 1 分钟
-    halfOpenRequests: 2
-});
-
-/** Meting API 断路器 */
-export const metingCircuit = new CircuitBreaker('Meting', {
-    failureThreshold: 3,
-    resetTimeout: 2 * 60 * 1000, // 2 分钟
-    halfOpenRequests: 1
+    halfOpenRequests: 1,
 });

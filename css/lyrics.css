@@ -51,12 +51,7 @@
     transform: scale(1.05);
     margin: 20px 0;
     /* 高亮行的背景效果 */
-    background: linear-gradient(
-        90deg,
-        transparent 0%,
-        rgba(255, 107, 107, 0.1) 50%,
-        transparent 100%
-    );
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 107, 107, 0.1) 50%, transparent 100%);
 }
 
 /* 即将播放的歌词行（预高亮） */

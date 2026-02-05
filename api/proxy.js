@@ -6,6 +6,9 @@ const UPSTREAM_TIMEOUT = 30000;
 // NOTE: URL 参数最大长度限制
 const MAX_URL_LENGTH = 2048;
 
+// NOTE: 可选的网易云 VIP Cookie（用于获取完整音源）
+const NETEASE_VIP_COOKIE = process.env.NETEASE_VIP_COOKIE || '';
+
 // ============================================
 // 速率限制配置
 // ============================================
@@ -124,7 +127,7 @@ const ALLOWED_HOSTS = [
     'music-api.gdstudio.xyz',
     'api.injahow.cn',
     'meting.qjqq.cn',
-    'nec8.de5.net',
+    'w7z.indevs.in',
     'tktok.de5.net',
     'netease-cloud-music-api-five-roan.vercel.app',
     // QQ 音乐
@@ -162,6 +165,18 @@ const ALLOWED_HOSTS = [
     'aod.cos.tx.xmcdn.com'
 ];
 
+// NOTE: 仅对网易云相关域名附加 VIP Cookie
+const NETEASE_COOKIE_HOSTS = [
+    'music.163.com',
+    'interface.music.163.com',
+    'netease-cloud-music-api-five-roan.vercel.app',
+    'w7z.indevs.in',
+];
+
+function shouldAttachNeteaseCookie(hostname) {
+    return NETEASE_COOKIE_HOSTS.some(host => hostname === host || hostname.endsWith('.' + host));
+}
+
 /**
  * 验证 URL 是否在白名单中
  * @param {string} url 需要验证的 URL
@@ -182,12 +197,22 @@ function isUrlAllowed(url) {
     }
 }
 
+// NOTE: 仅对 NEC API 追加 cookie 查询参数（部分部署只识别 query 方式）
+const NETEASE_COOKIE_QUERY_HOSTS = [
+    'w7z.indevs.in',
+    'netease-cloud-music-api-five-roan.vercel.app',
+];
+
+function shouldAttachCookieQuery(hostname) {
+    return NETEASE_COOKIE_QUERY_HOSTS.some(host => hostname === host || hostname.endsWith('.' + host));
+}
+
 module.exports = async (req, res) => {
     // NOTE: 获取客户端 IP（Vercel 提供）
     const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
-                     req.headers['x-real-ip'] ||
-                     req.socket?.remoteAddress ||
-                     'unknown';
+        req.headers['x-real-ip'] ||
+        req.socket?.remoteAddress ||
+        'unknown';
 
     // NOTE: 获取请求来源
     const requestOrigin = req.headers.origin || '';
@@ -246,6 +271,16 @@ module.exports = async (req, res) => {
         // NOTE: 根据目标域名动态设置 Referer 和其他请求头
         let referer = 'https://music.163.com/';
         let extraHeaders = {};
+        const cookieHeader = NETEASE_VIP_COOKIE && shouldAttachNeteaseCookie(parsedUrl.hostname)
+            ? NETEASE_VIP_COOKIE
+            : '';
+
+        // NOTE: 某些 NEC 部署仅识别 cookie 查询参数
+        if (cookieHeader && shouldAttachCookieQuery(parsedUrl.hostname) && !parsedUrl.searchParams.has('cookie')) {
+            parsedUrl.searchParams.set('cookie', cookieHeader);
+        }
+
+        const requestUrl = parsedUrl.toString();
 
         if (parsedUrl.hostname.includes('gdstudio.xyz')) {
             // GDStudio API 需要特殊的请求头
@@ -270,11 +305,12 @@ module.exports = async (req, res) => {
             referer = 'https://www.ximalaya.com/';
         }
 
-        const response = await fetch(decodedUrl, {
+        const response = await fetch(requestUrl, {
             headers: {
                 'Referer': referer,
                 'Origin': referer.replace(/\/$/, ''),
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                ...(cookieHeader ? { 'Cookie': cookieHeader } : {}),
                 ...extraHeaders
             },
             signal: controller.signal

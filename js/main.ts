@@ -50,12 +50,12 @@ function switchMobilePage(pageIndex: number): void {
 window.switchMobilePage = switchMobilePage;
 
 // --- 全局错误处理 ---
-window.addEventListener('error', (event) => {
+window.addEventListener('error', event => {
     logger.error('Global error:', event.error);
     ui.showNotification('发生错误，请刷新页面重试', 'error');
 });
 
-window.addEventListener('unhandledrejection', (event) => {
+window.addEventListener('unhandledrejection', event => {
     logger.error('Unhandled promise rejection:', event.reason);
     // NOTE: 使用通用错误消息，因为可能不是网络错误
     ui.showNotification('操作失败，请稍后重试', 'error');
@@ -103,18 +103,20 @@ function initializeApp(): void {
     registerServiceWorker();
 
     // NOTE: 异步检测可用 API，不阻塞主流程
-    api.findWorkingAPI().then(result => {
-        if (result.success) {
-            ui.showNotification(`已连接到 ${result.name}`, 'success');
-            // NOTE: API 连接成功后自动加载推荐
-            handleExplore();
-        } else {
-            ui.showNotification('所有 API 均不可用，请稍后重试', 'error');
-        }
-    }).catch(error => {
-        logger.error('API detection failed:', error);
-        ui.showNotification('API 检测失败', 'error');
-    });
+    api.findWorkingAPI()
+        .then(result => {
+            if (result.success) {
+                ui.showNotification(`已连接到 ${result.name}`, 'success');
+                // NOTE: API 连接成功后自动加载推荐
+                handleExplore();
+            } else {
+                ui.showNotification('所有 API 均不可用，请稍后重试', 'error');
+            }
+        })
+        .catch(error => {
+            logger.error('API detection failed:', error);
+            ui.showNotification('API 检测失败', 'error');
+        });
 
     player.loadSavedPlaylists();
 
@@ -144,7 +146,7 @@ function bindEventListeners(): void {
 
     // NOTE: 搜索输入框回车立即搜索（不使用防抖，用户按回车就是要立即搜索）
     if (searchInput) {
-        searchInput.addEventListener('keypress', (e) => {
+        searchInput.addEventListener('keypress', e => {
             if (e.key === 'Enter') {
                 handleSearch();
             }
@@ -180,12 +182,12 @@ function bindEventListeners(): void {
         playModeBtn.addEventListener('click', player.togglePlayMode);
     }
     if (volumeSlider) {
-        volumeSlider.addEventListener('input', (e) => {
+        volumeSlider.addEventListener('input', e => {
             player.setVolume((e.target as HTMLInputElement).value);
         });
     }
     if (progressBar) {
-        progressBar.addEventListener('click', (e) => player.seekTo(e as MouseEvent));
+        progressBar.addEventListener('click', e => player.seekTo(e as MouseEvent));
     }
 
     // Download buttons
@@ -285,7 +287,7 @@ function bindEventListeners(): void {
     }
 
     // NOTE: 全局键盘快捷键
-    document.addEventListener('keydown', (e) => {
+    document.addEventListener('keydown', e => {
         // 如果正在输入框中，不触发快捷键
         const activeElement = document.activeElement;
         if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
@@ -377,7 +379,7 @@ async function handleSearch(): Promise<void> {
                 ytmusic: 'YouTube Music',
                 tidal: 'TIDAL',
                 qobuz: 'Qobuz',
-                deezer: 'Deezer'
+                deezer: 'Deezer',
             };
             const sourceName = sourceNames[source] || source;
             ui.showNotification(`从 ${sourceName} 找到 ${songs.length} 首歌曲`, 'success');
@@ -505,7 +507,7 @@ async function handleRanking(rankType: string): Promise<void> {
     const keywords: { [key: string]: string } = {
         hot: '热歌榜',
         new: '新歌',
-        soar: '飙升'
+        soar: '飙升',
     };
 
     const keyword = keywords[rankType] || '热门';
@@ -537,22 +539,30 @@ document.addEventListener('DOMContentLoaded', () => {
     // NOTE: 移动端触摸滑动支持
     const mainContainer = document.querySelector('.main-container');
     if (mainContainer) {
-        mainContainer.addEventListener('touchstart', (e) => {
-            touchStartX = (e as TouchEvent).changedTouches[0].screenX;
-            touchStartY = (e as TouchEvent).changedTouches[0].screenY;
-        }, { passive: true });
+        mainContainer.addEventListener(
+            'touchstart',
+            e => {
+                touchStartX = (e as TouchEvent).changedTouches[0].screenX;
+                touchStartY = (e as TouchEvent).changedTouches[0].screenY;
+            },
+            { passive: true }
+        );
 
-        mainContainer.addEventListener('touchend', (e) => {
-            touchEndX = (e as TouchEvent).changedTouches[0].screenX;
-            touchEndY = (e as TouchEvent).changedTouches[0].screenY;
-            handleSwipe();
-        }, { passive: true });
+        mainContainer.addEventListener(
+            'touchend',
+            e => {
+                touchEndX = (e as TouchEvent).changedTouches[0].screenX;
+                touchEndY = (e as TouchEvent).changedTouches[0].screenY;
+                handleSwipe();
+            },
+            { passive: true }
+        );
     }
 
     // NOTE: 页面指示器点击事件委托
     const indicatorContainer = document.querySelector('.mobile-page-indicators');
     if (indicatorContainer) {
-        indicatorContainer.addEventListener('click', (e) => {
+        indicatorContainer.addEventListener('click', e => {
             const target = e.target as HTMLElement;
             if (target.classList.contains('page-indicator')) {
                 const pageIndex = parseInt(target.dataset.page || '0', 10);
@@ -596,14 +606,14 @@ function handleSwipe(): void {
     }
 }
 
-
 /**
  * 注册 Service Worker
  */
 function registerServiceWorker(): void {
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js')
+            navigator.serviceWorker
+                .register('/sw.js')
                 .then(registration => {
                     logger.debug('SW registered:', registration);
                 })
@@ -613,4 +623,3 @@ function registerServiceWorker(): void {
         });
     }
 }
-

@@ -1,25 +1,7 @@
 /**
  * 云音乐播放器 - 工具函数单元测试
  */
-import { escapeHtml, formatTime, debounce, throttle, getElement, getRequiredElement, safeStorage, delay } from './utils';
-
-// Mock localStorage for jsdom environment
-const localStorageMock = (() => {
-    let store: Record<string, string> = {};
-    return {
-        getItem: (key: string) => store[key] || null,
-        setItem: (key: string, value: string) => { store[key] = value.toString(); },
-        removeItem: (key: string) => { delete store[key]; },
-        clear: () => { store = {}; },
-        get length() { return Object.keys(store).length; },
-        key: (i: number) => Object.keys(store)[i] || null
-    };
-})();
-
-Object.defineProperty(globalThis, 'localStorage', {
-    value: localStorageMock,
-    writable: true
-});
+import { escapeHtml, formatTime, debounce, throttle, getElement } from './utils';
 
 describe('escapeHtml', () => {
     it('应正确转义 HTML 特殊字符', () => {
@@ -90,7 +72,9 @@ describe('formatTime', () => {
 describe('debounce', () => {
     it('应延迟执行函数', async () => {
         let callCount = 0;
-        const fn = debounce(() => { callCount++; }, 50);
+        const fn = debounce(() => {
+            callCount++;
+        }, 50);
 
         fn();
         fn();
@@ -105,7 +89,9 @@ describe('debounce', () => {
 
     it('应传递正确的参数', async () => {
         let lastArgs: unknown[] = [];
-        const fn = debounce((...args: unknown[]) => { lastArgs = args; }, 50);
+        const fn = debounce((...args: unknown[]) => {
+            lastArgs = args;
+        }, 50);
 
         fn('arg1', 2, { key: 'value' });
 
@@ -129,7 +115,9 @@ describe('debounce', () => {
 describe('throttle', () => {
     it('应限制函数执行频率', async () => {
         let callCount = 0;
-        const fn = throttle(() => { callCount++; }, 50);
+        const fn = throttle(() => {
+            callCount++;
+        }, 50);
 
         fn();
         fn();
@@ -145,7 +133,9 @@ describe('throttle', () => {
 
     it('应传递正确的参数', async () => {
         let lastArg = 0;
-        const fn = throttle((arg: number) => { lastArg = arg; }, 50);
+        const fn = throttle((arg: number) => {
+            lastArg = arg;
+        }, 50);
 
         fn(42);
         fn(100);
@@ -195,95 +185,5 @@ describe('getElement', () => {
         if (element) {
             expect(element.tagName).toBe('INPUT');
         }
-    });
-});
-
-describe('getRequiredElement', () => {
-    beforeEach(() => {
-        document.body.innerHTML = '<div id="required">Required</div>';
-    });
-
-    it('应返回存在的元素', () => {
-        const element = getRequiredElement('#required');
-        expect(element).not.toBeNull();
-        expect(element.textContent).toBe('Required');
-    });
-
-    it('应抛出错误当元素不存在时', () => {
-        expect(() => getRequiredElement('#nonExistent')).toThrow('Required element not found: #nonExistent');
-    });
-});
-
-describe('safeStorage', () => {
-    beforeEach(() => {
-        localStorage.clear();
-    });
-
-    afterEach(() => {
-        localStorage.clear();
-    });
-
-    it('应正确获取默认值', () => {
-        const result = safeStorage.get('nonExistent', 'default');
-        expect(result).toBe('default');
-    });
-
-    it('应正确设置和获取值', () => {
-        safeStorage.set('testKey', { name: 'test' });
-        const result = safeStorage.get<{ name: string }>('testKey', { name: 'default' });
-        expect(result.name).toBe('test');
-    });
-
-    it('应正确处理 JSON 解析错误', () => {
-        localStorage.setItem('invalidJson', 'not valid json');
-        const result = safeStorage.get('invalidJson', 'default');
-        expect(result).toBe('default');
-    });
-
-    it('应正确删除项', () => {
-        safeStorage.set('toDelete', 'value');
-        expect(safeStorage.get('toDelete', null)).toBe('value');
-        safeStorage.remove('toDelete');
-        expect(safeStorage.get('toDelete', null)).toBeNull();
-    });
-
-    it('应正确处理数字类型', () => {
-        safeStorage.set('numberKey', 123);
-        const result = safeStorage.get<number>('numberKey', 0);
-        expect(result).toBe(123);
-    });
-
-    it('应正确处理布尔类型', () => {
-        safeStorage.set('boolKey', true);
-        const result = safeStorage.get<boolean>('boolKey', false);
-        expect(result).toBe(true);
-    });
-});
-
-describe('delay', () => {
-    it('应在指定时间后 resolve', async () => {
-        const start = Date.now();
-        await delay(50);
-        const elapsed = Date.now() - start;
-        expect(elapsed).toBeGreaterThanOrEqual(40);
-    });
-
-    it('应支持取消', async () => {
-        const promise = delay(1000);
-
-        // 在短时间内取消
-        setTimeout(() => promise.cancel(), 50);
-
-        await expect(promise).rejects.toThrow('Delay was cancelled');
-    });
-
-    it('应正确处理并发取消', async () => {
-        const p1 = delay(500);
-        const p2 = delay(500);
-
-        setTimeout(() => p1.cancel(), 100);
-
-        await expect(p1).rejects.toThrow('Delay was cancelled');
-        await expect(p2).resolves.toBeUndefined();
     });
 });

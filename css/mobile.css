@@ -58,7 +58,8 @@
 /* === Mobile Devices === */
 @media (max-width: 768px) {
     /* NOTE: 防止移动端页面滚动时出现水平滚动条 */
-    html, body {
+    html,
+    body {
         overflow-x: hidden;
         width: 100%;
         position: relative;

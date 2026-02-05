@@ -81,7 +81,7 @@ describe('UI Helper Functions', () => {
                     album: '专辑1',
                     pic_id: 'pic1',
                     lyric_id: 'lyric1',
-                    source: 'netease'
+                    source: 'netease',
                 },
                 {
                     id: '2',
@@ -90,8 +90,8 @@ describe('UI Helper Functions', () => {
                     album: '专辑2',
                     pic_id: 'pic2',
                     lyric_id: 'lyric2',
-                    source: 'netease'
-                }
+                    source: 'netease',
+                },
             ];
 
             displaySearchResults(songs, 'testResults', songs);
@@ -236,7 +236,7 @@ describe('Lyrics Display', () => {
         const lyrics = [
             { time: 0, text: '第一行歌词' },
             { time: 5, text: '第二行歌词' },
-            { time: 10, text: '第三行歌词' }
+            { time: 10, text: '第三行歌词' },
         ];
 
         updateLyrics(lyrics, 0);
@@ -263,7 +263,7 @@ describe('Lyrics Display', () => {
         const lyrics = [
             { time: 0, text: '第一行歌词' },
             { time: 5, text: '第二行歌词' },
-            { time: 10, text: '第三行歌词' }
+            { time: 10, text: '第三行歌词' },
         ];
 
         // 当前时间为 6 秒，应该高亮第二行

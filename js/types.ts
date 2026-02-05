@@ -433,12 +433,7 @@ export class MusicError extends Error {
     /** 用户友好的错误消息 */
     userMessage: string;
 
-    constructor(
-        type: MusicErrorType,
-        message: string,
-        userMessage: string,
-        cause?: Error
-    ) {
+    constructor(type: MusicErrorType, message: string, userMessage: string, cause?: Error) {
         super(message);
         this.name = 'MusicError';
         this.type = type;

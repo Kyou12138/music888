@@ -48,7 +48,7 @@ export function initPerformanceMonitoring(): void {
 
     // LCP (Largest Contentful Paint)
     try {
-        const lcpObserver = new PerformanceObserver((entryList) => {
+        const lcpObserver = new PerformanceObserver(entryList => {
             const entries = entryList.getEntries();
             const lastEntry = entries[entries.length - 1] as PerformanceEntry & { startTime: number };
             if (lastEntry) {
@@ -62,7 +62,7 @@ export function initPerformanceMonitoring(): void {
 
     // FID (First Input Delay)
     try {
-        const fidObserver = new PerformanceObserver((entryList) => {
+        const fidObserver = new PerformanceObserver(entryList => {
             const entries = entryList.getEntries();
             const firstEntry = entries[0] as PerformanceEntry & { processingStart: number; startTime: number };
             if (firstEntry) {
@@ -78,7 +78,7 @@ export function initPerformanceMonitoring(): void {
     // CLS (Cumulative Layout Shift)
     try {
         let clsValue = 0;
-        const clsObserver = new PerformanceObserver((entryList) => {
+        const clsObserver = new PerformanceObserver(entryList => {
             for (const entry of entryList.getEntries()) {
                 const layoutShift = entry as PerformanceEntry & { hadRecentInput: boolean; value: number };
                 if (!layoutShift.hadRecentInput) {

@@ -1,6 +1,9 @@
 import { defineConfig } from 'vite';
+import { devProxyPlugin } from './dev-proxy-plugin';
 
 export default defineConfig({
+    // NOTE: 开发代理插件 - 模拟 Vercel 无服务器函数
+    plugins: [devProxyPlugin()],
     // public 目录下的静态资源会被复制到 dist 根目录
     publicDir: 'public',
     build: {
@@ -19,7 +22,8 @@ export default defineConfig({
         },
     },
     server: {
-        host: 'localhost',
+        // NOTE: 设置为 true 允许所有网络接口访问，支持浏览器工具测试
+        host: true,
         port: 5173,
         strictPort: false,
         // 修复 HMR WebSocket 连接问题

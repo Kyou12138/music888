@@ -13,6 +13,11 @@
  */
 export const IS_PRODUCTION = import.meta.env.PROD;
 
+/**
+ * NCM Docker 部署地址（统一 NEC API 来源）
+ */
+export const NCM_BASE_URL = 'https://w7z.indevs.in';
+
 // ============================================
 // 错误缓冲区（用于未来远程上报）
 // ============================================
@@ -37,7 +42,7 @@ function addToErrorBuffer(level: 'WARN' | 'ERROR', message: string, details?: an
         timestamp: new Date().toISOString(),
         level,
         message: String(message),
-        details
+        details,
     };
 
     errorBuffer.push(entry);
@@ -46,20 +51,6 @@ function addToErrorBuffer(level: 'WARN' | 'ERROR', message: string, details?: an
     if (errorBuffer.length > ERROR_BUFFER_SIZE) {
         errorBuffer.shift();
     }
-}
-
-/**
- * 获取错误缓冲区（用于调试或未来上报）
- */
-export function getErrorBuffer(): ErrorEntry[] {
-    return [...errorBuffer];
-}
-
-/**
- * 清空错误缓冲区
- */
-export function clearErrorBuffer(): void {
-    errorBuffer.length = 0;
 }
 
 /**
@@ -103,7 +94,7 @@ export const logger = {
     error: (...args: any[]): void => {
         console.error('[ERROR]', ...args);
         addToErrorBuffer('ERROR', args[0], args.slice(1));
-    }
+    },
 };
 
 // ============================================

@@ -14,7 +14,9 @@
     z-index: 1001;
     opacity: 0;
     transform: translateX(100%);
-    transition: opacity var(--transition-normal), transform var(--transition-normal);
+    transition:
+        opacity var(--transition-normal),
+        transform var(--transition-normal);
     max-width: 350px;
     word-wrap: break-word;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);

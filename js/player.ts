@@ -38,7 +38,9 @@ function loadSavedVolume(): number {
             const vol = parseFloat(saved);
             if (isFinite(vol) && vol >= 0 && vol <= 1) return vol;
         }
-    } catch { /* ignore */ }
+    } catch {
+        /* ignore */
+    }
     return 0.8;
 }
 
@@ -48,7 +50,9 @@ function loadSavedVolume(): number {
 function persistVolume(volume: number): void {
     try {
         localStorage.setItem('musicPlayerVolume', String(volume));
-    } catch { /* ignore */ }
+    } catch {
+        /* ignore */
+    }
 }
 
 // --- Playlist & Favorites State ---
@@ -90,9 +94,7 @@ function updateMediaSession(song: Song, coverUrl: string): void {
                 title: song.name,
                 artist: song.artist.join(' / '),
                 album: song.album || '未知专辑',
-                artwork: coverUrl ? [
-                    { src: coverUrl, sizes: '300x300', type: 'image/jpeg' }
-                ] : []
+                artwork: coverUrl ? [{ src: coverUrl, sizes: '300x300', type: 'image/jpeg' }] : [],
             });
 
             // 注册播放控制回调
@@ -108,7 +110,7 @@ function updateMediaSession(song: Song, coverUrl: string): void {
             navigator.mediaSession.setActionHandler('nexttrack', () => {
                 nextSong();
             });
-            navigator.mediaSession.setActionHandler('seekto', (details) => {
+            navigator.mediaSession.setActionHandler('seekto', details => {
                 if (details.seekTime !== undefined && audioPlayer.duration) {
                     audioPlayer.currentTime = details.seekTime;
                 }
@@ -727,151 +729,159 @@ function savePlaylistsToStorage(): void {
 
 // NOTE: 音频事件监听器抽取为函数，在 initPlayer 中调用
 function bindAudioEvents(): void {
-
-// NOTE: 监听音频加载错误，提供详细诊断信息
-audioPlayer.addEventListener('error', _e => {
-    const error = audioPlayer.error;
-    let errorMsg = '未知错误';
-    if (error) {
-        switch (error.code) {
-            case MediaError.MEDIA_ERR_ABORTED:
-                errorMsg = '播放被中断';
-                break;
-            case MediaError.MEDIA_ERR_NETWORK:
-                errorMsg = '网络错误导致加载失败';
-                break;
-            case MediaError.MEDIA_ERR_DECODE:
-                errorMsg = '音频解码失败';
-                break;
-            case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
-                errorMsg = '音频格式不支持或URL无效';
-                break;
+    // NOTE: 监听音频加载错误，提供详细诊断信息
+    audioPlayer.addEventListener('error', _e => {
+        const error = audioPlayer.error;
+        let errorMsg = '未知错误';
+        if (error) {
+            switch (error.code) {
+                case MediaError.MEDIA_ERR_ABORTED:
+                    errorMsg = '播放被中断';
+                    break;
+                case MediaError.MEDIA_ERR_NETWORK:
+                    errorMsg = '网络错误导致加载失败';
+                    break;
+                case MediaError.MEDIA_ERR_DECODE:
+                    errorMsg = '音频解码失败';
+                    break;
+                case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                    errorMsg = '音频格式不支持或URL无效';
+                    break;
+            }
         }
-    }
-    logger.error('Audio Error:', errorMsg, 'URL:', audioPlayer.src);
-    ui.showNotification(`播放错误: ${errorMsg}`, 'error');
-});
+        logger.error('Audio Error:', errorMsg, 'URL:', audioPlayer.src);
+        ui.showNotification(`播放错误: ${errorMsg}`, 'error');
+    });
 
-audioPlayer.addEventListener('play', () => {
-    isPlaying = true;
-    ui.updatePlayButton(true);
-    document.getElementById('currentCover')?.classList.add('playing');
-});
+    audioPlayer.addEventListener('play', () => {
+        isPlaying = true;
+        ui.updatePlayButton(true);
+        document.getElementById('currentCover')?.classList.add('playing');
+    });
 
-audioPlayer.addEventListener('pause', () => {
-    isPlaying = false;
-    ui.updatePlayButton(false);
-    document.getElementById('currentCover')?.classList.remove('playing');
-});
+    audioPlayer.addEventListener('pause', () => {
+        isPlaying = false;
+        ui.updatePlayButton(false);
+        document.getElementById('currentCover')?.classList.remove('playing');
+    });
 
-audioPlayer.addEventListener('ended', () => {
-    if (playMode === 'single') {
-        // NOTE: 单曲循环直接重置播放位置，无需重新加载资源
-        audioPlayer.currentTime = 0;
-        audioPlayer.play().catch(err => {
-            logger.warn('单曲循环播放失败:', err);
-        });
-    } else {
-        nextSong();
-    }
-});
-
-audioPlayer.addEventListener('timeupdate', () => {
-    if (audioPlayer.duration) {
-        ui.updateProgress(audioPlayer.currentTime, audioPlayer.duration);
-        // NOTE: 实时更新歌词高亮和跟随
-        if (currentLyrics.length > 0) {
-            ui.updateLyrics(currentLyrics, audioPlayer.currentTime);
-        }
-    }
-});
-
-audioPlayer.addEventListener('loadedmetadata', () => {
-    if (audioPlayer.duration) {
-        ui.updateProgress(audioPlayer.currentTime, audioPlayer.duration);
-
-        // NOTE: 多维度试听检测
-        const duration = audioPlayer.duration;
-        const song = getCurrentSong();
-
-        // 检查是否在试听时长区间
-        const isInPreviewRange = duration >= PREVIEW_DETECTION.MIN_DURATION &&
-                                  duration <= PREVIEW_DETECTION.MAX_DURATION;
-
-        // 检查是否接近典型试听时长（30秒/60秒）
-        const isNearTypicalDuration = PREVIEW_DETECTION.TYPICAL_DURATIONS.some(
-            typical => Math.abs(duration - typical) <= PREVIEW_DETECTION.DURATION_TOLERANCE
-        );
-
-        // 综合判断：在区间内且接近典型时长
-        const isProbablyPreview = isInPreviewRange && isNearTypicalDuration;
-
-        if (isProbablyPreview && song && !isSeekingFullVersion && fullVersionSearchCount < 2) {
-            logger.debug(`检测到可能的短版本 (${Math.round(duration)}秒): ${song.name}`);
-
-            // 标记正在搜索，防止重入
-            isSeekingFullVersion = true;
-            fullVersionSearchCount++;
-
-            const quality = (document.getElementById('qualitySelect') as HTMLSelectElement)?.value || '320';
-            const currentRequestId = currentPlayRequestId; // 保存当前请求ID
-
-            api.tryGetFullVersionFromOtherSources(song, quality).then(result => {
-                // 检查是否还是同一首歌（防止用户已切歌）
-                if (currentRequestId !== currentPlayRequestId) {
-                    logger.debug('用户已切歌，放弃切换完整版');
-                    return;
-                }
-
-                if (result && result.url) {
-                    logger.info('从其他源找到完整版本，自动切换');
-
-                    // 保存当前播放状态
-                    const wasPlaying = !audioPlayer.paused;
-                    const currentTime = audioPlayer.currentTime;
-                    const currentVolume = audioPlayer.volume;
-
-                    // 处理代理 URL
-                    let newUrl = result.url.replace(/^http:/, 'https:');
-                    if (needsProxy(newUrl)) {
-                        newUrl = `/api/proxy?url=${encodeURIComponent(newUrl)}`;
-                    }
-
-                    // 无缝切换：淡出 → 换源 → 淡入
-                    fadeOut().then(() => {
-                        audioPlayer.src = newUrl;
-                        audioPlayer.load();
-
-                        audioPlayer.addEventListener('canplay', function onCanPlay() {
-                            audioPlayer.removeEventListener('canplay', onCanPlay);
-                            // 从相近位置继续（最多 10 秒，避免超出新音频时长）
-                            audioPlayer.currentTime = Math.min(currentTime, 10);
-                            audioPlayer.volume = 0;
-
-                            if (wasPlaying) {
-                                audioPlayer.play().then(() => {
-                                    fadeIn();
-                                }).catch(e => {
-                                    logger.warn('切换完整版播放失败:', e);
-                                    audioPlayer.volume = currentVolume;
-                                });
-                            } else {
-                                audioPlayer.volume = currentVolume;
-                            }
-                        }, { once: true });
-                    });
-                } else {
-                    logger.debug(`未找到更长版本 (${Math.round(duration)}秒)`);
-                }
-            }).catch(e => {
-                logger.debug('跨源搜索失败:', e);
-            }).finally(() => {
-                isSeekingFullVersion = false;
+    audioPlayer.addEventListener('ended', () => {
+        if (playMode === 'single') {
+            // NOTE: 单曲循环直接重置播放位置，无需重新加载资源
+            audioPlayer.currentTime = 0;
+            audioPlayer.play().catch(err => {
+                logger.warn('单曲循环播放失败:', err);
             });
+        } else {
+            nextSong();
         }
-    }
-});
+    });
 
+    audioPlayer.addEventListener('timeupdate', () => {
+        if (audioPlayer.duration) {
+            ui.updateProgress(audioPlayer.currentTime, audioPlayer.duration);
+            // NOTE: 实时更新歌词高亮和跟随
+            if (currentLyrics.length > 0) {
+                ui.updateLyrics(currentLyrics, audioPlayer.currentTime);
+            }
+        }
+    });
+
+    audioPlayer.addEventListener('loadedmetadata', () => {
+        if (audioPlayer.duration) {
+            ui.updateProgress(audioPlayer.currentTime, audioPlayer.duration);
+
+            // NOTE: 多维度试听检测
+            const duration = audioPlayer.duration;
+            const song = getCurrentSong();
+
+            // 检查是否在试听时长区间
+            const isInPreviewRange =
+                duration >= PREVIEW_DETECTION.MIN_DURATION && duration <= PREVIEW_DETECTION.MAX_DURATION;
+
+            // 检查是否接近典型试听时长（30秒/60秒）
+            const isNearTypicalDuration = PREVIEW_DETECTION.TYPICAL_DURATIONS.some(
+                typical => Math.abs(duration - typical) <= PREVIEW_DETECTION.DURATION_TOLERANCE
+            );
+
+            // 综合判断：在区间内且接近典型时长
+            const isProbablyPreview = isInPreviewRange && isNearTypicalDuration;
+
+            if (isProbablyPreview && song && !isSeekingFullVersion && fullVersionSearchCount < 2) {
+                logger.debug(`检测到可能的短版本 (${Math.round(duration)}秒): ${song.name}`);
+
+                // 标记正在搜索，防止重入
+                isSeekingFullVersion = true;
+                fullVersionSearchCount++;
+
+                const quality = (document.getElementById('qualitySelect') as HTMLSelectElement)?.value || '320';
+                const currentRequestId = currentPlayRequestId; // 保存当前请求ID
+
+                api.tryGetFullVersionFromOtherSources(song, quality)
+                    .then(result => {
+                        // 检查是否还是同一首歌（防止用户已切歌）
+                        if (currentRequestId !== currentPlayRequestId) {
+                            logger.debug('用户已切歌，放弃切换完整版');
+                            return;
+                        }
+
+                        if (result && result.url) {
+                            logger.info('从其他源找到完整版本，自动切换');
+
+                            // 保存当前播放状态
+                            const wasPlaying = !audioPlayer.paused;
+                            const currentTime = audioPlayer.currentTime;
+                            const currentVolume = audioPlayer.volume;
+
+                            // 处理代理 URL
+                            let newUrl = result.url.replace(/^http:/, 'https:');
+                            if (needsProxy(newUrl)) {
+                                newUrl = `/api/proxy?url=${encodeURIComponent(newUrl)}`;
+                            }
+
+                            // 无缝切换：淡出 → 换源 → 淡入
+                            fadeOut().then(() => {
+                                audioPlayer.src = newUrl;
+                                audioPlayer.load();
+
+                                audioPlayer.addEventListener(
+                                    'canplay',
+                                    function onCanPlay() {
+                                        audioPlayer.removeEventListener('canplay', onCanPlay);
+                                        // 从相近位置继续（最多 10 秒，避免超出新音频时长）
+                                        audioPlayer.currentTime = Math.min(currentTime, 10);
+                                        audioPlayer.volume = 0;
+
+                                        if (wasPlaying) {
+                                            audioPlayer
+                                                .play()
+                                                .then(() => {
+                                                    fadeIn();
+                                                })
+                                                .catch(e => {
+                                                    logger.warn('切换完整版播放失败:', e);
+                                                    audioPlayer.volume = currentVolume;
+                                                });
+                                        } else {
+                                            audioPlayer.volume = currentVolume;
+                                        }
+                                    },
+                                    { once: true }
+                                );
+                            });
+                        } else {
+                            logger.debug(`未找到更长版本 (${Math.round(duration)}秒)`);
+                        }
+                    })
+                    .catch(e => {
+                        logger.debug('跨源搜索失败:', e);
+                    })
+                    .finally(() => {
+                        isSeekingFullVersion = false;
+                    });
+            }
+        }
+    });
 } // end bindAudioEvents
 
 /**
