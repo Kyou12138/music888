@@ -1,245 +1,246 @@
-# 云音乐播放器
+# 云音乐 - 在线音乐播放器
 
-一个功能强大的在线音乐播放器，支持多平台音乐搜索、高品质播放、歌词显示和歌单管理。
+功能丰富的在线音乐播放器，三栏布局设计，集成歌手浏览、电台播客、歌单管理等功能。
 
-## 主要特性
+## 功能介绍
 
-### 多平台音乐源
-- **12 个音乐平台**: 网易云音乐、QQ 音乐、酷狗、酷我、咪咕、JOOX、喜马拉雅、Spotify、Apple Music、YouTube Music、TIDAL、Deezer
-- **GDStudio API**: 多源聚合搜索，支持跨平台歌曲查找
-- **NEC API**: 网易云解锁，支持 VIP 歌曲播放尝试
-- **探索雷达**: 一键发现热门音乐
+### 三栏布局
 
-### 播放功能
-- **品质选择**: 标准(128K)、较高(192K)、高品质(320K)、无损(FLAC)、Hi-Res
-- **品质自动降级**: Hi-Res → FLAC → 320K → 192K → 128K
-- **跨源搜索**: VIP 歌曲自动从其他源查找完整版本
-- **试听检测**: 自动检测并提示试听版本
-- **播放模式**: 列表循环、随机播放、单曲循环
-- **音频淡入淡出**: 切歌时平滑过渡
-- **Media Session**: 支持系统级媒体控制（锁屏、媒体键）
+| 左栏 — 内容发现 | 中栏 — 播放器 | 右栏 — 我的 |
+|:---:|:---:|:---:|
+| 搜索 / 排行榜 / 歌手 / 电台 | 封面 / 控制 / 单行歌词 / 进度 | 歌单 / 收藏 / 播放历史 |
 
-### 歌词功能
-- **实时同步**: 逐行高亮跟随
-- **双语歌词**: 支持原文 + 翻译歌词同步显示
-- **歌词下载**: LRC 格式
+### 搜索与发现
 
-### 歌单与收藏
-- **解析网易云歌单**: 支持歌单 ID 或完整链接
-- **我的喜欢**: 收藏歌曲到本地
-- **播放历史**: 自动记录最近 50 首
-- **歌曲下载**: 下载高品质音乐文件
+- **综合搜索** — 输入关键词即搜，支持歌名、歌手、专辑
+- **探索雷达** — 一键换一批热门推荐
+- **排行榜** — 热歌榜 / 新歌榜 / 飙升榜
 
-### 用户体验
-- **响应式设计**: 桌面端三栏布局，移动端滑动页面
-- **触摸手势**: 移动端左右滑动切换页面
-- **键盘快捷键**: 空格播放/暂停，方向键切歌/调音量
-- **PWA 支持**: 可添加到主屏幕
+### 歌手浏览
 
-## 快速开始
+- **地区筛选** — 全部 / 华语 / 欧美 / 日本 / 韩国
+- **歌手卡片** — 头像网格展示，点击进入歌手主页
+- **热门歌曲** — 查看歌手热歌并直接播放
 
-### 环境要求
+### 电台播客
 
-- Node.js >= 18.0.0
-- 浏览器: Chrome/Edge >= 90, Firefox >= 121, Safari >= 14
+- **热门电台** — 浏览热门电台节目
+- **节目列表** — 进入电台查看节目详情
+- **一键播放** — 点击节目直接播放音频
 
-### 在线访问
+### 播放器
 
-[在线演示](https://music.weny888.com/)
+- **品质选择** — 标准 128K / 较高 192K / 高品质 320K / 无损 FLAC / Hi-Res
+- **品质自动降级** — 高品质不可用时自动回退
+- **跨源搜索** — VIP 歌曲自动从其他源查找完整版
+- **试听检测** — 自动检测试听片段并无缝切换完整版
+- **播放模式** — 列表循环 / 随机播放 / 单曲循环
+- **单行歌词** — 播放器区域实时显示当前歌词行
+- **音频淡入淡出** — 切歌时平滑过渡
+- **Media Session** — 支持系统级媒体控制（锁屏、媒体键）
+- **键盘快捷键** — 空格播放/暂停，方向键切歌/调音量
 
-### 一键部署到 Vercel
+### 歌单与收藏（右栏"我的"）
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/truelife0958/music888)
+- **歌单解析** — 输入网易云歌单 ID 或链接，解析歌曲列表
+- **歌单管理** — 保存、加载、删除歌单
+- **我的收藏** — 收藏喜欢的歌曲，持久化到本地
+- **播放历史** — 自动记录最近 50 首，支持一键清空
+- **歌曲下载** — 下载高品质音乐和 LRC 歌词文件
 
-> 详细部署指南见 [DEPLOYMENT.md](./DEPLOYMENT.md)
+### 移动端适配
 
-### 本地开发
-
-```bash
-# 克隆项目
-git clone https://github.com/truelife0958/music888.git
-cd music888
-
-# 安装依赖
-npm install
-
-# 启动开发服务器
-npm run dev
-
-# 运行测试
-npm run test:run
-
-# 构建生产版本
-npm run build
-```
-
-开发服务器启动后访问 `http://localhost:5173`
+- **三页滑动** — 搜索页 → 播放器页 → 我的页
+- **触摸手势** — 左右滑动切换页面
+- **响应式网格** — 歌手卡片自动适配为 2 列/3 列
+- **PWA 支持** — 可添加到主屏幕作为独立应用
 
 ## 技术栈
 
 | 类别 | 技术 |
 |------|------|
-| 语言 | TypeScript (strict mode) |
+| 语言 | TypeScript |
 | 构建 | Vite |
 | 测试 | Vitest + jsdom |
 | 代码检查 | ESLint + Prettier |
-| 部署 | Vercel Serverless Functions |
+| 部署 | Cloudflare Pages + Functions |
 | 图标 | Font Awesome 6 |
 
 ## 项目结构
 
 ```
 music888/
-├── api/
-│   └── proxy.js          # Vercel Serverless 代理 (URL 白名单 + CORS)
+├── functions/
+│   └── api/proxy.js        # Cloudflare Pages Function（CORS 代理）
 ├── css/
-│   ├── animations.css    # 动画效果
-│   ├── base.css          # 基础样式 + CSS 变量
-│   ├── components.css    # 通用组件
-│   ├── layout.css        # 三栏布局
-│   ├── lyrics.css        # 歌词显示
-│   ├── mobile.css        # 移动端适配 (< 768px)
-│   ├── player.css        # 播放器样式
-│   ├── variables.css     # 主题变量
-│   └── style.css         # 入口文件
+│   ├── base.css             # 基础重置
+│   ├── variables.css        # CSS 变量 / 主题
+│   ├── layout.css           # 三栏布局
+│   ├── components.css       # 通用组件（歌手卡片/电台列表/筛选栏/标签页）
+│   ├── player.css           # 播放器
+│   ├── lyrics.css           # 歌词 + 单行歌词
+│   ├── animations.css       # 动画
+│   ├── mobile.css           # 移动端适配
+│   └── style.css            # 样式入口
 ├── js/
-│   ├── api.ts            # API 调用 (搜索/歌曲URL/歌词/歌单)
-│   ├── config.ts         # 配置常量 (超时/代理/日志)
-│   ├── main.ts           # 入口 (事件绑定/标签切换/手势)
-│   ├── player.ts         # 播放器核心 (播放/收藏/历史/歌词解析)
-│   ├── types.ts          # TypeScript 类型定义
-│   ├── ui.ts             # UI 渲染 (列表/通知/进度/歌词)
-│   ├── utils.ts          # 工具函数 (防抖/节流/转义/存储)
-│   └── *.test.ts         # 单元测试 (128 个测试)
+│   ├── api/
+│   │   ├── client.ts        # HTTP 客户端（fetchWithRetry / 代理）
+│   │   ├── music.ts         # 歌曲 URL / 歌词 / 封面 / 跨源搜索
+│   │   ├── search.ts        # 搜索 / 歌单 / 歌手列表 / 电台
+│   │   ├── sources.ts       # API 源配置与检测
+│   │   └── utils.ts         # 相似度计算 / 源统计
+│   ├── player/
+│   │   ├── core.ts          # 播放器核心状态
+│   │   ├── control.ts       # 播放控制（播放/暂停/切歌）
+│   │   ├── effects.ts       # 音频淡入淡出
+│   │   └── events.ts        # 音频事件 / Media Session / 单行歌词
+│   ├── api.ts               # API 统一导出
+│   ├── config.ts            # 配置常量
+│   ├── main.ts              # 入口（事件绑定/标签切换/手势）
+│   ├── player.ts            # 播放器统一导出
+│   ├── types.ts             # TypeScript 类型定义
+│   ├── ui.ts                # UI 渲染（歌手网格/电台列表/歌词/通知）
+│   └── utils.ts             # 工具函数
 ├── public/
-│   ├── manifest.json     # PWA 清单
-│   └── sw.js             # Service Worker
-├── index.html            # 主页面
-├── package.json
-├── tsconfig.json
+│   ├── manifest.json        # PWA 清单
+│   └── sw.js                # Service Worker
+├── index.html               # 主页面
+├── wrangler.toml             # Cloudflare Pages 配置
 ├── vite.config.ts
-├── vitest.config.ts
-└── vercel.json           # Vercel 部署路由
+└── package.json
 ```
 
-## 核心架构
+## 部署指南
 
-### API 多源容错
+### Cloudflare Pages 部署（当前方案）
 
-```
-请求歌曲 URL 的优先级:
-1. NEC Unblock (match) - 解锁网易云 VIP
-2. GDStudio API        - 多源聚合
-3. NEC 常规接口         - 网易云官方
-4. Meting API (i-meto) - 备用接口 (支持解析歌单)
-5. 跨源搜索             - 自动从酷我、酷狗、咪咕等源搜索同名歌曲并切换播放
-```
+本项目使用 Cloudflare Pages + Functions 部署，代理函数处理 CORS 跨域请求。
 
-### VIP 与试听逻辑
-- **主动探测**: 在获取 URL 阶段，如果检测到首选源疑似试听版，会自动触发后台跨源搜索。
-- **无缝换源**: 在播放过程中如果检测到短版本，系统会自动在后台查找完整版，并进行淡入淡出的无缝流式替换。
-- **多维度检测**: 结合文件名特征、URL 模式、文件大小以及时长元数据进行精准判断。
+#### 方式一：Git 集成（推荐）
 
-### 安全措施
+1. Fork 本仓库到你的 GitHub 账号
+2. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com/) → Workers & Pages
+3. 点击 **Create application** → **Pages** → **Connect to Git**
+4. 选择你 Fork 的仓库，配置如下：
 
-- **XSS 防护**: `escapeHtml()` + `textContent` 防止注入
-- **SSRF 防护**: 代理服务 URL 白名单 + 协议检查
-- **输入验证**: `encodeURIComponent` + 正则校验
-- **错误隔离**: 用户消息与内部错误分离，不暴露堆栈
+   | 配置项 | 值 |
+   |--------|-----|
+   | Framework preset | None |
+   | Build command | `npm run build` |
+   | Build output directory | `dist` |
 
-### 开发命令
+5. 点击 **Save and Deploy**，等待构建完成
+
+每次推送到 `main` 分支将自动触发部署。
+
+#### 方式二：Wrangler CLI
 
 ```bash
-npm run dev           # 启动开发服务器
-npm run build         # 生产构建
-npm run test:run      # 运行单元测试
-npm run test:coverage # 测试覆盖率报告
-npm run lint          # 代码检查
-npm run format        # 代码格式化
+# 安装 Wrangler
+npm install -g wrangler
+
+# 登录 Cloudflare
+wrangler login
+
+# 构建项目
+npm run build
+
+# 部署
+wrangler pages deploy dist --project-name music888
 ```
+
+#### 环境变量（可选）
+
+在 Cloudflare Pages Dashboard → Settings → Environment Variables 中配置：
+
+| 变量名 | 说明 |
+|--------|------|
+| `NETEASE_VIP_COOKIE` | 网易云 VIP Cookie，用于解锁 VIP 歌曲 |
+| `EXTRA_ALLOWED_HOSTS` | 额外允许代理的域名（逗号分隔） |
+
+#### 自定义域名
+
+1. Pages Dashboard → Custom domains
+2. 添加域名（如 `music.yourdomain.com`）
+3. 按提示配置 DNS CNAME 记录
+4. SSL 证书自动签发
+
+### 其他部署方式
+
+#### Vercel
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/truelife0958/music888)
+
+需要将 `functions/api/proxy.js` 适配为 Vercel Serverless Function 格式。
+
+#### Docker
+
+```bash
+# 构建
+docker build -t music888 .
+
+# 运行
+docker run -d -p 80:80 music888
+```
+
+> 更多部署方式（Netlify、GitHub Pages、Nginx、Docker）详见 [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+### 本地开发
+
+```bash
+# 克隆
+git clone https://github.com/truelife0958/music888.git
+cd music888
+
+# 安装依赖
+npm install
+
+# 启动开发服务器（http://localhost:5173）
+npm run dev
+
+# 构建
+npm run build
+
+# 测试
+npm run test:run
+
+# 代码检查
+npm run lint
+```
+
+## API 架构
+
+```
+请求歌曲的优先级：
+1. NEC Unblock (match)  → 解锁网易云 VIP
+2. GDStudio API         → 多源聚合搜索
+3. NEC 常规接口          → 网易云官方
+4. Meting API           → 备用接口
+5. 跨源搜索              → 酷我/酷狗/咪咕等自动换源
+```
+
+代理层（`functions/api/proxy.js`）提供 URL 白名单校验和 CORS 头注入，所有外部请求经由代理中转。
+
+## 安全措施
+
+- **XSS 防护** — `escapeHtml()` + `textContent` 防止注入
+- **SSRF 防护** — 代理服务 URL 白名单 + 协议检查
+- **输入校验** — `encodeURIComponent` + 正则验证
+- **错误隔离** — 用户消息与内部错误分离
 
 ## 常见问题
 
 **VIP 歌曲只播放试听版?**
-- 需要为后端代理注入 VIP Cookie（仅用于网易云相关接口）
-- 配置方式：在部署环境中设置 `NETEASE_VIP_COOKIE` 环境变量
-- 该 Cookie 会由代理仅在网易云相关域名请求时附加，避免泄漏到其他平台
+> 在部署环境配置 `NETEASE_VIP_COOKIE` 环境变量。
 
 **歌曲无法播放?**
-- 歌曲可能因版权限制不可用，系统会自动尝试从其他平台搜索
-- 如提示"试听版本"，说明当前源仅提供片段，可尝试更换平台
+> 可能因版权限制，系统会自动尝试从其他平台搜索完整版。
 
 **歌单解析失败?**
-- 确保输入公开歌单的 ID 或链接
-- 测试歌单: `60198`、`3778678`
+> 确保输入公开歌单 ID 或链接。测试歌单：`60198`、`3778678`。
 
-**数据存储在哪里?**
-- 收藏、历史、歌单均保存在浏览器 localStorage，不上传服务器
-
-## 贡献指南
-
-欢迎提交 Issue 和 Pull Request!
-
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/xxx`)
-3. 提交更改 (`git commit -m 'feat: 添加某个功能'`)
-4. 推送到分支 (`git push origin feature/xxx`)
-5. 提交 Pull Request
-
-## 更新日志
-
-### 2026-02-05 (v1.2.0) - 系统深度审计与 API 优化
-
-**API 与后端:**
-- **移除失效域名**: 清理了 `de5.net` 相关的所有陈旧/失效后端。
-- **引入 Meting (i-meto)**: 集成了更稳定的 Meting API 源，并修复了解析歌单时的 403 权限问题。
-- **代理优化**: 为 `api.i-meto.com` 设置了正确的 Referer，并增强了 GDStudio 的反爬头模拟。
-
-**播放与试听:**
-- **VIP 体验增强**: 显著提升了试听版的自动换源成功率，引入了主动探测机制。
-- **淡入淡出优化**: 修复了极端场景下（如快速切歌）的淡入淡出状态冲突。
-
-**UI 与全量修复:**
-- **搜索优化**: 修复了搜索框回车连点或不触发的问题，改用 `keydown` 监听。
-- **移动端适配**: 修复了页面初始化时滑动指示器可能不同步的小 Bug。
-- **项目瘦身**: 删除了 `nul`、`.claude`、`.omc` 以及各类测试残留报告，保持代码仓库纯净。
-- **日志规范化**: 统一使用全局 `logger`，便于生产环境的状态监控。
-
-### 2026-02-01 (v1.1.0)
-
-**Bug 修复:**
-- 修复播放器双 Audio 元素冲突，确保使用 DOM 中的 `<audio>` 元素
-- 修复随机模式下可能连续播放相同歌曲的问题
-- 修复单曲循环模式重新加载整首歌的问题，现在直接 seek 到开头
-- 修复音量设置不持久化的问题，重启后恢复上次音量
-- 修复播放历史无去重的问题，相同歌曲不再重复记录
-- 修复切歌淡入淡出竞态条件导致的状态异常
-- 修复 `updateActiveItem` 清除所有容器高亮的问题，现在只影响当前容器
-- 修复 Meting API 歌单解析使用错误 URL 的问题
-- 修复 Enter 搜索使用防抖导致延迟的问题
-- 修复桌面端到移动端尺寸变化时布局异常
-- 修复前进/后退按钮使用脆弱 CSS 选择器的问题，改用 ID
-- 修复移动端不是一屏一栏的布局问题（grid→flex, gap→0, box-sizing）
-- 修复移动端页脚下方空白区域问题（隐藏移动端页脚）
-- 修复桌面端页脚下方空白区域（调整 min-height 计算）
-- 移除过度敏感的试听版本检测规则，减少误判
-
-**试听版本自动处理:**
-- 新增：检测到试听版本（25-65秒）时自动尝试从其他音乐源获取完整版
-- 新增：跨源搜索支持酷我、酷狗、咪咕、喜马拉雅、JOOX 五个备选源
-- 新增：找到完整版本后自动无缝切换播放
-
-**后端优化:**
-- 添加 OPTIONS 预检请求处理，解决 CORS 问题
-- 添加 30 秒上游请求超时，防止函数挂起
-- 改进超时错误处理，返回 504 而非通用 500
-
-**性能优化:**
-- GDStudio API 检测失败后立即标记不可用，避免重复尝试
-- GDStudio API 调用不再重试，快速失败并回退到 NEC API
-
-**项目清理:**
-- 移除 Windows 产生的 `nul` 空文件
+**数据保存在哪?**
+> 收藏、历史、歌单均保存在浏览器 localStorage，不上传服务器。
 
 ## 开源协议
 
@@ -247,6 +248,6 @@ MIT License
 
 ## 致谢
 
-- [music-api.gdstudio.xyz](https://music-api.gdstudio.xyz) - 音乐 API 服务
-- [Font Awesome](https://fontawesome.com/) - 图标库
-- [Vite](https://vitejs.dev/) - 构建工具
+- [music-api.gdstudio.xyz](https://music-api.gdstudio.xyz) — 音乐 API
+- [Font Awesome](https://fontawesome.com/) — 图标库
+- [Vite](https://vitejs.dev/) — 构建工具
