@@ -14,6 +14,17 @@ declare global {
     interface Window {
         /** 移动端页面切换函数 */
         switchMobilePage?: (pageIndex: number) => void;
+        /** Cloudflare Turnstile API */
+        turnstile?: {
+            render: (container: string | HTMLElement, options: {
+                sitekey: string;
+                theme?: 'light' | 'dark' | 'auto';
+                callback?: (token: string) => void;
+                'error-callback'?: () => void;
+            }) => string;
+            reset: (widgetId: string) => void;
+            remove: (widgetId: string) => void;
+        };
     }
 }
 
@@ -520,6 +531,16 @@ export interface ArtistTopSongResponse {
 }
 
 /**
+ * 歌手全部歌曲 API 响应
+ */
+export interface ArtistSongsResponse {
+    code: number;
+    songs?: NeteaseSongDetail[];
+    more: boolean;
+    total: number;
+}
+
+/**
  * 电台信息
  */
 export interface RadioStation {
@@ -585,4 +606,33 @@ export interface RadioCateListResponse {
 export interface RadioRecommendResponse {
     code: number;
     djRadios?: RadioStation[];
+}
+
+/**
+ * 用户歌单信息
+ */
+export interface UserPlaylist {
+    id: number;
+    name: string;
+    trackCount: number;
+    coverImgUrl?: string;
+    userId: number;
+    description?: string;
+    playCount?: number;
+}
+
+/**
+ * 用户歌单 API 响应
+ */
+export interface UserPlaylistResponse {
+    code: number;
+    playlist?: UserPlaylist[];
+}
+
+/**
+ * 电台详情 API 响应
+ */
+export interface RadioDetailResponse {
+    code: number;
+    data?: RadioStation;
 }

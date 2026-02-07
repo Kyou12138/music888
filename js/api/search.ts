@@ -17,13 +17,17 @@ import {
     ArtistInfo,
     ArtistListResponse,
     ArtistTopSongResponse,
+    ArtistSongsResponse,
     RadioStation,
     RadioHotResponse,
     RadioProgram,
     RadioProgramResponse,
     RadioCategory,
     RadioCateListResponse,
-    RadioRecommendResponse
+    RadioRecommendResponse,
+    UserPlaylist,
+    UserPlaylistResponse,
+    RadioDetailResponse
 } from '../types';
 
 import { fetchWithRetry } from './client';
@@ -182,6 +186,19 @@ export async function getArtistTopSongs(id: number): Promise<Song[]> {
 }
 
 /**
+ * 获取歌手全部歌曲（分页）
+ */
+export async function getArtistSongs(id: number, limit = 50, offset = 0, order = 'hot'): Promise<{ songs: Song[], more: boolean, total: number }> {
+    const res = await fetchWithRetry(`${getNecApiUrl()}/artist/songs?id=${id}&order=${encodeURIComponent(order)}&limit=${limit}&offset=${offset}`);
+    const data: ArtistSongsResponse = await res.json();
+    return {
+        songs: data.code === 200 && data.songs ? data.songs.map(convertNeteaseDetailToSong) : [],
+        more: data.more ?? false,
+        total: data.total ?? 0
+    };
+}
+
+/**
  * 获取热门电台
  */
 export async function getHotRadio(limit = 60, offset = 0): Promise<{ radios: RadioStation[], hasMore: boolean }> {
@@ -220,4 +237,22 @@ export async function getRadioByCategory(cateId: number, limit = 60, offset = 0)
     const data: RadioRecommendResponse = await res.json();
     const radios = data.code === 200 && data.djRadios ? data.djRadios : [];
     return { radios, hasMore: radios.length >= limit };
+}
+
+/**
+ * 获取用户公开歌单
+ */
+export async function getUserPlaylists(uid: string): Promise<UserPlaylist[]> {
+    const res = await fetchWithRetry(`${getNecApiUrl()}/user/playlist?uid=${encodeURIComponent(uid)}`);
+    const data: UserPlaylistResponse = await res.json();
+    return data.code === 200 && data.playlist ? data.playlist : [];
+}
+
+/**
+ * 获取电台详情
+ */
+export async function getRadioDetail(rid: number): Promise<RadioStation | null> {
+    const res = await fetchWithRetry(`${getNecApiUrl()}/dj/detail?rid=${rid}`);
+    const data: RadioDetailResponse = await res.json();
+    return data.code === 200 && data.data ? data.data : null;
 }

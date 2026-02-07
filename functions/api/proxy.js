@@ -105,6 +105,22 @@ const NETEASE_COOKIE_HOSTS = [
 export async function onRequest(context) {
     const { request, env } = context;
     const url = new URL(request.url);
+
+    // OPTIONS 预检处理
+    if (request.method === 'OPTIONS') {
+        const requestOrigin = request.headers.get('Origin') || '';
+        const corsOrigin = ALLOWED_ORIGINS.includes(requestOrigin) ? requestOrigin : ALLOWED_ORIGINS[0];
+        return new Response(null, {
+            status: 204,
+            headers: {
+                'Access-Control-Allow-Origin': corsOrigin,
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, X-Turnstile-Token',
+                'Access-Control-Max-Age': '86400',
+            }
+        });
+    }
+
     const targetUrlParam = url.searchParams.get('url');
 
     if (!targetUrlParam) {
@@ -129,7 +145,40 @@ export async function onRequest(context) {
         });
     }
 
-    // 2. 安全检查
+    // 2. Turnstile 验证
+    const turnstileSecret = env.TURNSTILE_SECRET_KEY;
+    const turnstileToken = request.headers.get('X-Turnstile-Token');
+    if (turnstileSecret) {
+        if (!turnstileToken) {
+            return new Response(JSON.stringify({ error: 'Turnstile token required' }), {
+                status: 403,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+        try {
+            const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    secret: turnstileSecret,
+                    response: turnstileToken,
+                    remoteip: clientIp
+                })
+            });
+            const verifyData = await verifyRes.json();
+            if (!verifyData.success) {
+                return new Response(JSON.stringify({ error: 'Turnstile verification failed' }), {
+                    status: 403,
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            }
+        } catch (e) {
+            // Fail-open: 验证服务不可用时放行
+            console.error('[proxy] Turnstile verify error:', e.message);
+        }
+    }
+
+    // 3. 安全检查
     try {
         const parsedTarget = new URL(decodedUrl);
 
@@ -208,7 +257,7 @@ export async function onRequest(context) {
         const newHeaders = new Headers(response.headers);
         newHeaders.set('Access-Control-Allow-Origin', corsOrigin);
         newHeaders.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        newHeaders.set('Access-Control-Allow-Headers', 'Content-Type');
+        newHeaders.set('Access-Control-Allow-Headers', 'Content-Type, X-Turnstile-Token');
 
         // 音频流处理适配
         const contentType = response.headers.get('content-type') || '';

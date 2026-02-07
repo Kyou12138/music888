@@ -52,6 +52,9 @@
 
     <!-- 样式表 -->
     <link rel="stylesheet" href="css/style.css">
+
+    <!-- Cloudflare Turnstile -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" defer></script>
 </head>
 
 <body>
@@ -281,41 +284,40 @@
                 <button class="my-tab-btn" data-mytab="history"><i class="fas fa-history"></i> 历史</button>
             </div>
             <div id="myPlaylistPanel" class="my-tab-content active">
-                <!-- 解析网易云歌单 -->
+                <!-- 用户ID输入 -->
+                <div class="playlist-input-container">
+                    <input type="text" id="userIdInput" class="playlist-input"
+                        placeholder="输入网易云用户ID...">
+                    <button class="playlist-btn" id="loadUserPlaylistBtn">
+                        <i class="fas fa-user"></i> 加载
+                    </button>
+                </div>
+                <!-- 电台ID输入 -->
+                <div class="playlist-input-container">
+                    <input type="text" id="radioIdInput" class="playlist-input"
+                        placeholder="输入电台ID...">
+                    <button class="playlist-btn" id="addRadioBtn">
+                        <i class="fas fa-podcast"></i> 添加
+                    </button>
+                </div>
+                <!-- 歌单ID解析（保留原功能） -->
                 <div class="playlist-input-container">
                     <input type="text" id="playlistIdInput" class="playlist-input"
-                        placeholder="输入网易云歌单ID (如: 60198) 或链接...">
-                    <button class="playlist-btn">
+                        placeholder="输入歌单ID或链接...">
+                    <button class="playlist-btn" id="parsePlaylistBtn">
                         <i class="fas fa-cloud-download-alt"></i> 解析
                     </button>
                 </div>
-                <!-- 我保存的歌单 -->
-                <div class="saved-playlists-container">
-                    <div class="saved-playlists-header">
-                        <h4>
-                            <i class="fas fa-bookmark"></i>
-                            我保存的歌单
-                            <i class="fas fa-chevron-up" id="toggleIcon"></i>
-                        </h4>
-                        <button class="clear-all-btn" title="清空所有歌单">
-                            <i class="fas fa-trash"></i> 清空
-                        </button>
-                    </div>
-                    <div class="saved-playlists-list" id="savedPlaylistsList">
-                        <div class="empty-saved-state">
-                            <i class="fas fa-music"></i>
-                            <div>暂无保存的歌单</div>
-                            <div style="margin-top: 8px; font-size: 12px; opacity: 0.7;">
-                                解析网易云歌单后可保存到这里
-                            </div>
-                        </div>
-                    </div>
+                <!-- 合并歌单/电台列表 -->
+                <div id="userPlaylistsContainer" class="user-playlists-container" style="display:none">
+                    <h4><i class="fas fa-list-music"></i> 我的歌单</h4>
+                    <div id="userPlaylistsList" class="user-playlists-list"></div>
                 </div>
                 <!-- 歌单内容显示 -->
                 <div class="search-results" id="parseResults">
                     <div class="empty-state">
                         <i class="fas fa-music"></i>
-                        <div>输入歌单ID解析或点击已保存的歌单</div>
+                        <div>输入歌单ID或链接进行解析</div>
                         <div style="margin-top: 10px; font-size: 12px; color: rgba(255, 255, 255, 0.5);">
                             推荐：<span class="quick-id" data-playlist-id="60198">60198</span> ·
                             <span class="quick-id" data-playlist-id="3778678">3778678</span>
@@ -383,6 +385,37 @@
             </div>
         </div>
     </footer>
+
+    <!-- Turnstile 验证弹窗 -->
+    <div class="modal-overlay" id="turnstileModal" style="display:none">
+        <div class="modal-content" style="text-align:center">
+            <h2><i class="fas fa-shield-alt"></i> 安全验证</h2>
+            <p style="color: rgba(255,255,255,0.6); margin-bottom: 20px;">请完成验证以继续使用</p>
+            <div id="turnstileWidget" style="display:flex;justify-content:center;margin-bottom:15px;"></div>
+        </div>
+    </div>
+
+    <!-- 引导弹窗 -->
+    <div class="modal-overlay" id="onboardingModal" style="display:none">
+        <div class="modal-content">
+            <h2><i class="fas fa-music"></i> 欢迎使用沄听</h2>
+            <div class="modal-disclaimer">
+                <strong>免责声明</strong>
+                <p>本站仅供个人学习与技术研究使用，不存储任何音乐文件。所有音乐资源版权归原作者及平台所有，请在 24 小时内删除。因使用本站产生的一切法律后果由用户自行承担。</p>
+            </div>
+            <div class="modal-guide">
+                <h3>功能简介</h3>
+                <ul>
+                    <li><i class="fas fa-search"></i> <strong>搜索</strong> — 支持关键词搜索多平台音乐</li>
+                    <li><i class="fas fa-microphone-alt"></i> <strong>歌手</strong> — 浏览歌手分类，查看全部歌曲</li>
+                    <li><i class="fas fa-podcast"></i> <strong>电台</strong> — 收听网易云音乐电台节目</li>
+                    <li><i class="fas fa-list-ul"></i> <strong>歌单</strong> — 输入用户ID加载歌单，支持电台订阅</li>
+                    <li><i class="fas fa-heart"></i> <strong>收藏</strong> — 点击爱心收藏喜欢的歌曲</li>
+                </ul>
+            </div>
+            <button class="modal-dismiss-btn" id="onboardingDismissBtn">我已了解，开始使用</button>
+        </div>
+    </div>
 
     <script type="module" src="js/main.ts"></script>
 </body>

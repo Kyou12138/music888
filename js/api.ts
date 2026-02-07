@@ -45,10 +45,13 @@ export {
     parsePlaylistAPI,
     getArtistList,
     getArtistTopSongs,
+    getArtistSongs,
     getHotRadio,
     getRadioPrograms,
     getRadioCateList,
-    getRadioByCategory
+    getRadioByCategory,
+    getUserPlaylists,
+    getRadioDetail
 } from './api/search';
 
 // 导出工具函数 (如果需要的话)

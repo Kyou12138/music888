@@ -519,14 +519,6 @@
         gap: 6px;
     }
 
-    .my-panel-section .saved-playlists-container {
-        padding: 10px;
-    }
-
-    .my-panel-section .saved-playlists-header h4 {
-        font-size: 14px;
-    }
-
     .my-section-header {
         padding: 0 5px;
     }
@@ -639,6 +631,27 @@
 
     .loading i {
         font-size: 32px;
+    }
+
+    /* === 弹窗移动端 === */
+    .modal-content {
+        max-width: calc(100vw - 40px);
+        max-height: 80vh;
+        overflow-y: auto;
+        padding: 25px 20px;
+    }
+
+    .modal-content h2 {
+        font-size: 20px;
+    }
+
+    .modal-guide li {
+        font-size: 12px;
+    }
+
+    /* === 用户歌单移动端 === */
+    .user-playlists-list {
+        max-height: 200px;
     }
 }
 

@@ -33,21 +33,6 @@ export function loadSavedPlaylists(): void {
 }
 
 /**
- * 创建新歌单
- */
-export function createPlaylist(name: string): string {
-    const key = `custom_${playlistCounter++}`;
-    playlistStorage.set(key, {
-        name,
-        songs: [],
-        id: key,
-        createTime: new Date().toISOString()
-    });
-    savePlaylistsToStorage();
-    return key;
-}
-
-/**
  * 保存歌单到本地存储
  */
 export function savePlaylistsToStorage(): void {
@@ -165,19 +150,3 @@ export function loadPlayHistoryFromStorage(): void {
     }
 }
 
-/**
- * 清空所有歌单（保留收藏夹）
- */
-export function clearAllSavedPlaylists(): void {
-    const favs = playlistStorage.get('favorites');
-    playlistStorage.clear();
-    if (favs) playlistStorage.set('favorites', favs);
-    savePlaylistsToStorage();
-}
-
-/**
- * 获取所有已保存歌单
- */
-export function getSavedPlaylists(): Map<string, PlaylistData> {
-    return playlistStorage;
-}

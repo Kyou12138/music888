@@ -6,7 +6,7 @@ import * as api from './api';
 import * as ui from './ui';
 import * as player from './player';
 import { getElement } from './utils';
-import { MusicError, ArtistInfo, RadioStation, RadioProgram, RadioCategory } from './types';
+import { MusicError, ArtistInfo, RadioStation, RadioProgram, RadioCategory, Song, UserPlaylist } from './types';
 import { logger } from './config';
 import { initPerformanceMonitoring } from './perf';
 
@@ -25,6 +25,12 @@ let radioOffset = 0;
 let radioHasMore = false;
 let radioCurrentCateId = 0; // 0 = 热门
 let radioCategoriesLoaded = false;
+
+// NOTE: 歌手歌曲分页状态
+let artistSongsOffset = 0;
+let artistSongsHasMore = false;
+let artistSongsCurrentId = 0;
+let artistSongsAllSongs: Song[] = [];
 
 // NOTE: 触摸滑动状态
 let touchStartX = 0;
@@ -103,8 +109,17 @@ function switchTab(tabName: string): void {
 /**
  * 初始化应用程序
  */
-function initializeApp(): void {
+async function initializeApp(): Promise<void> {
     logger.info('沄听 App 初始化...');
+
+    // NOTE: Turnstile 安全验证（首次访问）
+    const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
+    if (siteKey && !localStorage.getItem('music888_turnstile_verified')) {
+        await showTurnstileChallenge(siteKey);
+    }
+
+    // NOTE: 首次访问引导弹窗
+    showOnboardingIfNeeded();
 
     // NOTE: 初始化性能监控（采集 Web Vitals）
     initPerformanceMonitoring();
@@ -131,8 +146,6 @@ function initializeApp(): void {
             ui.showNotification('API 检测失败', 'error');
         });
 
-    player.loadSavedPlaylists();
-
     // --- Event Listeners ---
     bindEventListeners();
 
@@ -141,6 +154,9 @@ function initializeApp(): void {
 
     // 加载收藏和播放历史（右栏"我的"面板）
     loadMyTabData();
+
+    // 自动恢复用户歌单和电台
+    restoreUserPlaylists();
 }
 
 /**
@@ -151,7 +167,9 @@ function bindEventListeners(): void {
     const searchBtn = getElement('.search-btn');
     const searchInput = getElement<HTMLInputElement>('#searchInput');
     const exploreBtn = getElement('#exploreRadarBtn');
-    const playlistBtn = getElement('.playlist-btn');
+    const playlistBtn = getElement('#parsePlaylistBtn');
+    const loadUserPlaylistBtn = getElement('#loadUserPlaylistBtn');
+    const addRadioBtn = getElement('#addRadioBtn');
 
     if (searchBtn) {
         searchBtn.addEventListener('click', handleSearch);
@@ -172,6 +190,14 @@ function bindEventListeners(): void {
 
     if (playlistBtn) {
         playlistBtn.addEventListener('click', handleParsePlaylist);
+    }
+
+    if (loadUserPlaylistBtn) {
+        loadUserPlaylistBtn.addEventListener('click', handleLoadUserPlaylists);
+    }
+
+    if (addRadioBtn) {
+        addRadioBtn.addEventListener('click', handleAddRadio);
     }
 
     // Player controls
@@ -295,21 +321,6 @@ function bindEventListeners(): void {
                 container.innerHTML = `<div class="empty-state"><i class="fas fa-history"></i><div>暂无播放记录</div></div>`;
             }
             ui.showNotification('播放历史已清空', 'success');
-        });
-    }
-
-    // NOTE: 清空所有歌单按钮
-    const clearAllPlaylistsBtn = getElement('.clear-all-btn');
-    if (clearAllPlaylistsBtn) {
-        clearAllPlaylistsBtn.addEventListener('click', () => {
-            if (confirm('确定要清空所有已保存的歌单吗？此操作不可恢复。')) {
-                player.clearAllSavedPlaylists();
-                const container = getElement('#savedPlaylistsList');
-                if (container) {
-                    container.innerHTML = `<div class="empty-saved-state"><i class="fas fa-music"></i><div>暂无保存的歌单</div><div style="margin-top: 8px; font-size: 12px; opacity: 0.7;">解析网易云歌单后可保存到这里</div></div>`;
-                }
-                ui.showNotification('已清空所有歌单', 'success');
-            }
         });
     }
 
@@ -599,7 +610,7 @@ async function handleLoadArtists(area: number, type: number = -1, initial: strin
 }
 
 /**
- * 点击歌手，加载热门歌曲
+ * 点击歌手，加载全部歌曲（分页）
  */
 async function handleArtistClick(artist: ArtistInfo): Promise<void> {
     const artistGrid = getElement('#artistGrid');
@@ -612,26 +623,70 @@ async function handleArtistClick(artist: ArtistInfo): Promise<void> {
     if (artistFilter) (artistFilter as HTMLElement).style.display = 'none';
     if (artistSongsView) (artistSongsView as HTMLElement).style.display = '';
 
-    // 渲染歌手头部信息
+    // 渲染增强头部信息
     if (artistSongsHeader) {
         const avatarUrl = artist.picUrl ? `${artist.picUrl}?param=96y96` : '';
+        const metaParts: string[] = [];
+        if (artist.musicSize) metaParts.push(`${artist.musicSize}首歌曲`);
+        if (artist.albumSize) metaParts.push(`${artist.albumSize}张专辑`);
         artistSongsHeader.innerHTML = `
             ${avatarUrl ? `<img src="${avatarUrl}" alt="${artist.name}">` : ''}
-            <span class="artist-header-name">${artist.name} 的热门歌曲</span>
+            <div class="artist-header-info">
+                <span class="artist-header-name">${artist.name}</span>
+                ${metaParts.length ? `<span class="artist-header-meta">${metaParts.join(' · ')}</span>` : ''}
+            </div>
         `;
     }
 
-    ui.showLoading('artistSongsResults');
+    // 重置分页状态
+    artistSongsOffset = 0;
+    artistSongsHasMore = false;
+    artistSongsCurrentId = artist.id;
+    artistSongsAllSongs = [];
+
+    await loadArtistSongsPage(false);
+}
+
+/**
+ * 加载歌手歌曲分页
+ */
+async function loadArtistSongsPage(append: boolean): Promise<void> {
+    if (!append) {
+        ui.showLoading('artistSongsResults');
+    }
 
     try {
-        const songs = await api.getArtistTopSongs(artist.id);
-        ui.displaySearchResults(songs, 'artistSongsResults', songs);
-        if (songs.length === 0) {
-            ui.showNotification('暂无热门歌曲', 'info');
+        const result = await api.getArtistSongs(artistSongsCurrentId, 50, artistSongsOffset);
+        artistSongsAllSongs = artistSongsAllSongs.concat(result.songs);
+        artistSongsOffset += result.songs.length;
+        artistSongsHasMore = result.more;
+
+        // 渲染完整累积列表
+        ui.displaySearchResults(artistSongsAllSongs, 'artistSongsResults', artistSongsAllSongs);
+
+        // 如果还有更多，追加"加载更多"按钮
+        if (artistSongsHasMore) {
+            const container = getElement('#artistSongsResults');
+            if (container) {
+                const btn = document.createElement('button');
+                btn.className = 'load-more-btn';
+                btn.innerHTML = `<i class="fas fa-plus-circle"></i> 加载更多 (已加载 ${artistSongsAllSongs.length}/${result.total})`;
+                btn.addEventListener('click', () => {
+                    btn.remove();
+                    loadArtistSongsPage(true);
+                });
+                container.appendChild(btn);
+            }
+        }
+
+        if (result.songs.length === 0 && !append) {
+            ui.showNotification('暂无歌曲', 'info');
         }
     } catch (error) {
         logger.error('Load artist songs failed:', error);
-        ui.showError('加载歌手热门歌曲失败', 'artistSongsResults');
+        if (!append) {
+            ui.showError('加载歌手歌曲失败', 'artistSongsResults');
+        }
     }
 }
 
@@ -804,6 +859,239 @@ function loadPlayHistory(): void {
 }
 
 /**
+ * 加载用户公开歌单
+ */
+async function handleLoadUserPlaylists(): Promise<void> {
+    const userIdInput = getElement<HTMLInputElement>('#userIdInput');
+    if (!userIdInput) return;
+
+    const uid = userIdInput.value.trim();
+    if (!uid || !/^\d+$/.test(uid)) {
+        ui.showNotification('请输入有效的用户ID（纯数字）', 'warning');
+        return;
+    }
+
+    // 持久化用户ID
+    localStorage.setItem('music888_userId', uid);
+
+    const container = getElement('#userPlaylistsContainer');
+    const listEl = getElement('#userPlaylistsList');
+    if (container) (container as HTMLElement).style.display = '';
+    if (listEl) listEl.innerHTML = `<div class="empty-state" style="padding:20px"><i class="fas fa-spinner fa-spin"></i><div>正在加载...</div></div>`;
+
+    try {
+        const playlists = await api.getUserPlaylists(uid);
+        const savedRadios = loadSavedRadios();
+        renderUserPlaylistList(playlists, savedRadios);
+        ui.showNotification(`已加载 ${playlists.length} 个歌单`, 'success');
+    } catch (error) {
+        logger.error('Load user playlists failed:', error);
+        if (listEl) listEl.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><div>加载歌单失败</div></div>`;
+        ui.showNotification('加载用户歌单失败', 'error');
+    }
+}
+
+/**
+ * 添加电台
+ */
+async function handleAddRadio(): Promise<void> {
+    const radioIdInput = getElement<HTMLInputElement>('#radioIdInput');
+    if (!radioIdInput) return;
+
+    const rid = radioIdInput.value.trim();
+    if (!rid || !/^\d+$/.test(rid)) {
+        ui.showNotification('请输入有效的电台ID（纯数字）', 'warning');
+        return;
+    }
+
+    ui.showNotification('正在获取电台信息...', 'info');
+
+    try {
+        const radio = await api.getRadioDetail(parseInt(rid, 10));
+        if (!radio) {
+            ui.showNotification('未找到该电台', 'warning');
+            return;
+        }
+
+        saveRadioToStorage(radio);
+        radioIdInput.value = '';
+
+        // 刷新列表
+        const savedUserId = localStorage.getItem('music888_userId');
+        if (savedUserId) {
+            const playlists = await api.getUserPlaylists(savedUserId);
+            renderUserPlaylistList(playlists, loadSavedRadios());
+        } else {
+            renderUserPlaylistList([], loadSavedRadios());
+        }
+
+        const container = getElement('#userPlaylistsContainer');
+        if (container) (container as HTMLElement).style.display = '';
+
+        ui.showNotification(`已添加电台「${radio.name}」`, 'success');
+    } catch (error) {
+        logger.error('Add radio failed:', error);
+        ui.showNotification('添加电台失败', 'error');
+    }
+}
+
+/**
+ * 点击歌单项，加载歌曲
+ */
+async function handlePlaylistItemClick(playlist: UserPlaylist): Promise<void> {
+    ui.showLoading('parseResults');
+
+    try {
+        const result = await api.parsePlaylistAPI(String(playlist.id));
+        ui.displaySearchResults(result.songs, 'parseResults', result.songs);
+        if (result.name) {
+            ui.showNotification(`已加载歌单「${result.name}」，共 ${result.songs.length} 首`, 'success');
+        }
+    } catch (error) {
+        logger.error('Load playlist songs failed:', error);
+        ui.showError('加载歌单歌曲失败', 'parseResults');
+    }
+}
+
+/**
+ * 点击电台项，加载节目
+ */
+async function handleRadioItemClick(radio: RadioStation): Promise<void> {
+    ui.showLoading('parseResults');
+
+    try {
+        const result = await api.getRadioPrograms(radio.id);
+        ui.displayRadioPrograms(result.programs, 'parseResults', handleRadioProgramPlay);
+        ui.showNotification(`已加载电台「${radio.name}」，共 ${result.programs.length} 个节目`, 'success');
+    } catch (error) {
+        logger.error('Load radio programs failed:', error);
+        ui.showError('加载电台节目失败', 'parseResults');
+    }
+}
+
+/**
+ * 读取已保存的电台列表
+ */
+function loadSavedRadios(): RadioStation[] {
+    try {
+        const saved = localStorage.getItem('music888_savedRadios');
+        return saved ? JSON.parse(saved) : [];
+    } catch {
+        return [];
+    }
+}
+
+/**
+ * 保存电台到 localStorage
+ */
+function saveRadioToStorage(radio: RadioStation): void {
+    const radios = loadSavedRadios();
+    // 去重
+    if (!radios.some(r => r.id === radio.id)) {
+        radios.push(radio);
+        localStorage.setItem('music888_savedRadios', JSON.stringify(radios));
+    }
+}
+
+/**
+ * 渲染用户歌单 + 电台合并列表
+ */
+function renderUserPlaylistList(playlists: UserPlaylist[], radios: RadioStation[]): void {
+    const listEl = getElement('#userPlaylistsList');
+    if (!listEl) return;
+
+    listEl.innerHTML = '';
+
+    if (playlists.length === 0 && radios.length === 0) {
+        listEl.innerHTML = `<div class="empty-state" style="padding:20px"><i class="fas fa-music"></i><div>暂无歌单或电台</div></div>`;
+        return;
+    }
+
+    const fragment = document.createDocumentFragment();
+
+    // 渲染歌单
+    for (const pl of playlists) {
+        const item = document.createElement('div');
+        item.className = 'playlist-item';
+        const coverUrl = pl.coverImgUrl ? `${pl.coverImgUrl}?param=80y80` : '';
+        item.innerHTML = `
+            ${coverUrl ? `<img class="playlist-item-cover" src="${coverUrl}" alt="${pl.name}" loading="lazy">` : ''}
+            <div class="playlist-item-info">
+                <div class="playlist-item-name">${pl.name}</div>
+                <div class="playlist-item-details"><span>${pl.trackCount} 首</span></div>
+            </div>
+        `;
+        item.addEventListener('click', () => handlePlaylistItemClick(pl));
+        fragment.appendChild(item);
+    }
+
+    // 渲染电台
+    for (const radio of radios) {
+        const item = document.createElement('div');
+        item.className = 'playlist-item';
+        const coverUrl = radio.picUrl ? `${radio.picUrl}?param=80y80` : '';
+        item.innerHTML = `
+            ${coverUrl ? `<img class="playlist-item-cover" src="${coverUrl}" alt="${radio.name}" loading="lazy">` : ''}
+            <div class="playlist-item-info">
+                <div class="playlist-item-name"><i class="fas fa-podcast" style="color: var(--color-primary); margin-right: 4px; font-size: 12px;"></i>${radio.name}</div>
+                <div class="playlist-item-details"><span>${radio.programCount || 0} 期</span></div>
+            </div>
+            <button class="playlist-action-btn delete" title="移除电台" style="flex-shrink:0">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        item.querySelector('.playlist-item-info')?.addEventListener('click', () => handleRadioItemClick(radio));
+        item.querySelector('.playlist-action-btn.delete')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            removeRadioFromStorage(radio.id);
+            item.remove();
+            ui.showNotification(`已移除电台「${radio.name}」`, 'success');
+        });
+        fragment.appendChild(item);
+    }
+
+    listEl.appendChild(fragment);
+}
+
+/**
+ * 从 localStorage 移除电台
+ */
+function removeRadioFromStorage(radioId: number): void {
+    const radios = loadSavedRadios().filter(r => r.id !== radioId);
+    localStorage.setItem('music888_savedRadios', JSON.stringify(radios));
+}
+
+/**
+ * 初始化时自动恢复用户歌单
+ */
+async function restoreUserPlaylists(): Promise<void> {
+    const savedUserId = localStorage.getItem('music888_userId');
+    const savedRadios = loadSavedRadios();
+
+    if (!savedUserId && savedRadios.length === 0) return;
+
+    // 填入已保存的用户ID
+    const userIdInput = getElement<HTMLInputElement>('#userIdInput');
+    if (userIdInput && savedUserId) {
+        userIdInput.value = savedUserId;
+    }
+
+    const container = getElement('#userPlaylistsContainer');
+    if (container) (container as HTMLElement).style.display = '';
+
+    if (savedUserId) {
+        try {
+            const playlists = await api.getUserPlaylists(savedUserId);
+            renderUserPlaylistList(playlists, savedRadios);
+        } catch {
+            renderUserPlaylistList([], savedRadios);
+        }
+    } else {
+        renderUserPlaylistList([], savedRadios);
+    }
+}
+
+/**
  * 处理排行榜加载
  */
 async function handleRanking(rankType: string): Promise<void> {
@@ -917,6 +1205,75 @@ function handleSwipe(): void {
             switchMobilePage(currentMobilePage - 1);
         }
     }
+}
+
+/**
+ * 显示 Turnstile 验证挑战
+ */
+function showTurnstileChallenge(siteKey: string): Promise<void> {
+    return new Promise((resolve) => {
+        const modal = getElement('#turnstileModal');
+        const widgetContainer = getElement('#turnstileWidget');
+        if (!modal || !widgetContainer) {
+            resolve();
+            return;
+        }
+
+        (modal as HTMLElement).style.display = '';
+
+        // 等待 Turnstile 脚本加载
+        const tryRender = () => {
+            if (window.turnstile) {
+                window.turnstile.render(widgetContainer, {
+                    sitekey: siteKey,
+                    theme: 'dark',
+                    callback: (token: string) => {
+                        sessionStorage.setItem('music888_turnstile_token', token);
+                        localStorage.setItem('music888_turnstile_verified', '1');
+                        (modal as HTMLElement).style.display = 'none';
+                        resolve();
+                    },
+                    'error-callback': () => {
+                        // Fail-open: 验证出错时放行
+                        logger.error('Turnstile verification failed, proceeding anyway');
+                        (modal as HTMLElement).style.display = 'none';
+                        resolve();
+                    }
+                });
+            } else {
+                setTimeout(tryRender, 200);
+            }
+        };
+        tryRender();
+    });
+}
+
+/**
+ * 显示首次访问引导弹窗
+ */
+function showOnboardingIfNeeded(): void {
+    if (localStorage.getItem('music888_onboarded')) return;
+
+    const modal = getElement('#onboardingModal');
+    if (!modal) return;
+
+    (modal as HTMLElement).style.display = '';
+
+    const dismissBtn = getElement('#onboardingDismissBtn');
+
+    const dismiss = () => {
+        localStorage.setItem('music888_onboarded', '1');
+        (modal as HTMLElement).style.display = 'none';
+    };
+
+    if (dismissBtn) {
+        dismissBtn.addEventListener('click', dismiss);
+    }
+
+    // 点击遮罩也可关闭
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) dismiss();
+    });
 }
 
 /**
