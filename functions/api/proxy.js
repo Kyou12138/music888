@@ -145,16 +145,12 @@ export async function onRequest(context) {
         });
     }
 
-    // 2. Turnstile 验证
+    // 2. Turnstile 验证（仅日志记录，不阻断请求）
+    // 注意：Turnstile token 是一次性的，客户端可能发送已用过的 token，
+    // 因此服务端验证仅用于审计，不作为访问控制依据。前端挑战是主要防护。
     const turnstileSecret = env.TURNSTILE_SECRET_KEY;
     const turnstileToken = request.headers.get('X-Turnstile-Token');
-    if (turnstileSecret) {
-        if (!turnstileToken) {
-            return new Response(JSON.stringify({ error: 'Turnstile token required' }), {
-                status: 403,
-                headers: { 'Content-Type': 'application/json' }
-            });
-        }
+    if (turnstileSecret && turnstileToken) {
         try {
             const verifyRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
                 method: 'POST',
@@ -167,13 +163,9 @@ export async function onRequest(context) {
             });
             const verifyData = await verifyRes.json();
             if (!verifyData.success) {
-                return new Response(JSON.stringify({ error: 'Turnstile verification failed' }), {
-                    status: 403,
-                    headers: { 'Content-Type': 'application/json' }
-                });
+                console.warn('[proxy] Turnstile token invalid (possibly reused):', JSON.stringify(verifyData));
             }
         } catch (e) {
-            // Fail-open: 验证服务不可用时放行
             console.error('[proxy] Turnstile verify error:', e.message);
         }
     }

@@ -38,14 +38,20 @@ export async function fetchWithRetry(
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 20000);
 
-            // 附加 Turnstile token（仅代理请求）
+            // 附加 Turnstile token（仅代理请求，一次性使用后清除）
             const requestOptions: RequestInit = { ...options, signal: controller.signal };
             if (useProxy) {
-                const turnstileToken = sessionStorage.getItem('music888_turnstile_token');
-                if (turnstileToken) {
-                    const headers = new Headers(options.headers);
-                    headers.set('X-Turnstile-Token', turnstileToken);
-                    requestOptions.headers = headers;
+                try {
+                    const turnstileToken = sessionStorage.getItem('music888_turnstile_token');
+                    if (turnstileToken) {
+                        const headers = new Headers(options.headers);
+                        headers.set('X-Turnstile-Token', turnstileToken);
+                        requestOptions.headers = headers;
+                        // Turnstile token 是一次性的，发送后立即清除避免重复使用
+                        sessionStorage.removeItem('music888_turnstile_token');
+                    }
+                } catch {
+                    // sessionStorage 不可用（隐私模式等），跳过 token 附加
                 }
             }
 

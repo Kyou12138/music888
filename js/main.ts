@@ -113,9 +113,13 @@ async function initializeApp(): Promise<void> {
     logger.info('沄听 App 初始化...');
 
     // NOTE: Turnstile 安全验证（首次访问）
-    const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
-    if (siteKey && !localStorage.getItem('music888_turnstile_verified')) {
-        await showTurnstileChallenge(siteKey);
+    try {
+        const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
+        if (siteKey && !localStorage.getItem('music888_turnstile_verified')) {
+            await showTurnstileChallenge(siteKey);
+        }
+    } catch {
+        // localStorage 不可用时跳过 Turnstile
     }
 
     // NOTE: 首次访问引导弹窗
