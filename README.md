@@ -194,8 +194,20 @@ wrangler pages deploy dist --project-name music888
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/truelife0958/music888)
 
-需要将 `functions/api/proxy.js` 适配为 Vercel Serverless Function 格式。
+说明：Vercel 使用 `api/proxy.js`（Node Serverless Function）；`functions/api/proxy.js` 仅用于 Cloudflare Pages。
 
+部署步骤：
+1. 仓库已包含 Vercel 版 `api/proxy.js`，可直接部署。
+2. Vercel 项目设置：
+   - Framework Preset：`Vite`
+   - Build Command：`npm run build`
+   - Output Directory：`dist`
+3. （可选）仓库已提供 `vercel.json` 作为 SPA 回退；如需自定义可调整。
+4. 在 Vercel 中配置环境变量：
+   - `VITE_TURNSTILE_SITE_KEY`（构建时注入）
+   - `TURNSTILE_SECRET_KEY`
+   - `NETEASE_VIP_COOKIE`
+   - `EXTRA_ALLOWED_HOSTS`（可选）
 #### Docker
 
 ```bash
